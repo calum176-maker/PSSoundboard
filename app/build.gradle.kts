@@ -15,6 +15,13 @@ val localProps = Properties().apply {
 fun feedbackSetting(key: String, env: String): String =
     (localProps.getProperty(key) ?: System.getenv(env) ?: "").replace("\"", "")
 
+// Shared test signing key, so every test APK (CI or local) installs over the last one.
+// Set PSSB_KEYSTORE_FILE and PSSB_KEYSTORE_PASSWORD (CI does, from repo secrets), or signing.file in
+// local.properties with the password still from the environment. Without them, the machine's debug key is used.
+val sharedKeyFile = (localProps.getProperty("signing.file") ?: System.getenv("PSSB_KEYSTORE_FILE"))
+    ?.let { file(it) }?.takeIf { it.isFile }
+val sharedKeyPassword: String? = System.getenv("PSSB_KEYSTORE_PASSWORD")
+
 android {
     namespace = "com.jms.pssoundboard"
     compileSdk {
@@ -26,8 +33,9 @@ android {
         // API 26+ required for TYPE_APPLICATION_OVERLAY and AudioFocusRequest.
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // CI sets these from the run number so each test build counts up.
+        versionCode = System.getenv("PSSB_VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("PSSB_VERSION_NAME") ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -35,7 +43,21 @@ android {
         buildConfigField("String", "FEEDBACK_KEY", "\"${feedbackSetting("feedback.key", "PSSB_FEEDBACK_KEY")}\"")
     }
 
+    signingConfigs {
+        if (sharedKeyFile != null && sharedKeyPassword != null) {
+            create("shared") {
+                storeFile = sharedKeyFile
+                storePassword = sharedKeyPassword
+                keyAlias = "pssb"
+                keyPassword = sharedKeyPassword
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfigs.findByName("shared")?.let { signingConfig = it }
+        }
         release {
             optimization {
                 enable = true
