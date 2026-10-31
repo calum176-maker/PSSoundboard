@@ -60,7 +60,8 @@ jobs:
           PSSB_FEEDBACK_URL: ${{ secrets.PSSB_FEEDBACK_URL }}
           PSSB_FEEDBACK_KEY: ${{ secrets.PSSB_FEEDBACK_KEY }}
         run: |
-          bash ./gradlew assembleDebug lintDebug
+          # gradle.properties pins a Windows JDK path for local builds; use the runner's JDK instead.
+          bash ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" assembleDebug lintDebug
           cp app/build/outputs/apk/debug/app-debug.apk PSSoundboard.apk
 
       - name: Remove signing key
