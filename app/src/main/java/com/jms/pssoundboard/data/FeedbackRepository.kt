@@ -3,6 +3,7 @@ package com.jms.pssoundboard.data
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import androidx.core.content.edit
 import com.jms.pssoundboard.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -129,6 +130,6 @@ class FeedbackRepository(context: Context) {
         runCatching { JSONArray(prefs.getString(QUEUE_KEY, "[]")) }.getOrDefault(JSONArray())
 
     private fun writeQueue(queue: JSONArray) {
-        prefs.edit().putString(QUEUE_KEY, queue.toString()).apply()
+        prefs.edit { putString(QUEUE_KEY, queue.toString()) }
     }
 }

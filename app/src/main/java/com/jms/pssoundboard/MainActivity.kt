@@ -1,5 +1,7 @@
 package com.jms.pssoundboard
 
+import java.time.LocalDate
+import androidx.activity.compose.rememberLauncherForActivityResult
 import com.jms.pssoundboard.ui.dialogs.FeedbackScreens
 import com.jms.pssoundboard.ui.dialogs.FeedbackDialog
 import androidx.compose.ui.platform.LocalContext
@@ -219,6 +221,12 @@ fun MainScreen(
 
     var currentTab by rememberSaveable { mutableIntStateOf(0) }
     var showFeedback by rememberSaveable { mutableStateOf(false) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri -> uri?.let { viewModel.exportDecks(it) } }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { viewModel.importDecks(it) } }
     val context = LocalContext.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val snackbarHostState = remember { SnackbarHostState() }
@@ -371,7 +379,9 @@ fun MainScreen(
                         outputDeviceName = outputDeviceName,
                         isTestTonePlaying = isTestTonePlaying,
                         onToggleTestTone = { viewModel.toggleTestTone() },
-                        onSendFeedback = { showFeedback = true }
+                        onSendFeedback = { showFeedback = true },
+                        onExportDecks = { exportLauncher.launch("pssoundboard-backup-${LocalDate.now()}.zip") },
+                        onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }
                     )
                 }
             }

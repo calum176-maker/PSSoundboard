@@ -40,30 +40,52 @@ class SpewVaultRepository(
 
     suspend fun initialize() = withContext(Dispatchers.IO) {
         val loaded = runCatching {
-            if (vaultFile.exists()) {
-                val jsonText = vaultFile.readText()
-                val array = JSONArray(jsonText)
-                val list = ArrayList<SpewEntry>(array.length())
-                for (i in 0 until array.length()) {
-                    val obj = array.optJSONObject(i) ?: continue
-                    list.add(
-                        SpewEntry(
-                            id = obj.optString("id", ""),
-                            title = obj.optString("title", ""),
-                            sourceUrl = obj.optString("sourceUrl", "").takeIf { it.isNotBlank() },
-                            localFilePath = obj.optString("localFilePath", "").takeIf { it.isNotBlank() },
-                            category = obj.optString("category", "Meme"),
-                            spewCount = obj.optInt("spewCount", 1),
-                            lastSpewedEpochMs = obj.optLong("lastSpewedEpochMs", System.currentTimeMillis()),
-                            isPinned = obj.optBoolean("isPinned", false)
-                        )
-                    )
-                }
-                list.filter { it.title.isNotBlank() }
-            } else null
+            if (vaultFile.exists()) parse(vaultFile.readText()) else null
         }.getOrNull()
 
         _entries.value = loaded ?: emptyList()
+    }
+
+    /** Parses vault JSON (the on-disk format, also used in backups). Throws on malformed JSON. */
+    fun parse(jsonText: String): List<SpewEntry> {
+        val array = JSONArray(jsonText)
+        val list = ArrayList<SpewEntry>(array.length())
+        for (i in 0 until array.length()) {
+            val obj = array.optJSONObject(i) ?: continue
+            list.add(
+                SpewEntry(
+                    id = obj.optString("id", ""),
+                    title = obj.optString("title", ""),
+                    sourceUrl = obj.optString("sourceUrl", "").takeIf { it.isNotBlank() },
+                    localFilePath = obj.optString("localFilePath", "").takeIf { it.isNotBlank() },
+                    category = obj.optString("category", "Meme"),
+                    spewCount = obj.optInt("spewCount", 1),
+                    lastSpewedEpochMs = obj.optLong("lastSpewedEpochMs", System.currentTimeMillis()),
+                    isPinned = obj.optBoolean("isPinned", false)
+                )
+            )
+        }
+        return list.filter { it.title.isNotBlank() }
+    }
+
+    /** Vault entries as JSON, in the on-disk format. */
+    fun toJson(entries: List<SpewEntry> = _entries.value): String {
+        val array = JSONArray()
+        entries.forEach { entry ->
+            array.put(
+                JSONObject().apply {
+                    put("id", entry.id)
+                    put("title", entry.title)
+                    put("sourceUrl", entry.sourceUrl ?: "")
+                    put("localFilePath", entry.localFilePath ?: "")
+                    put("category", entry.category)
+                    put("spewCount", entry.spewCount)
+                    put("lastSpewedEpochMs", entry.lastSpewedEpochMs)
+                    put("isPinned", entry.isPinned)
+                }
+            )
+        }
+        return array.toString(2)
     }
 
     /**
@@ -139,22 +161,8 @@ class SpewVaultRepository(
 
     private fun persistNow() {
         runCatching {
-            val array = JSONArray()
-            _entries.value.forEach { entry ->
-                val obj = JSONObject().apply {
-                    put("id", entry.id)
-                    put("title", entry.title)
-                    put("sourceUrl", entry.sourceUrl ?: "")
-                    put("localFilePath", entry.localFilePath ?: "")
-                    put("category", entry.category)
-                    put("spewCount", entry.spewCount)
-                    put("lastSpewedEpochMs", entry.lastSpewedEpochMs)
-                    put("isPinned", entry.isPinned)
-                }
-                array.put(obj)
-            }
             val tmp = File(vaultFile.parentFile, "$VAULT_FILE.tmp")
-            tmp.writeText(array.toString(2))
+            tmp.writeText(toJson())
             if (!tmp.renameTo(vaultFile)) {
                 tmp.copyTo(vaultFile, overwrite = true)
                 tmp.delete()

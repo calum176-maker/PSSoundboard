@@ -1,5 +1,6 @@
 package com.jms.pssoundboard.ui.screens
 
+import com.jms.pssoundboard.ui.components.CapsuleShape
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.StatusCard
 import androidx.compose.foundation.background
@@ -69,6 +70,8 @@ fun HardwareGuideScreen(
     isTestTonePlaying: Boolean,
     onToggleTestTone: () -> Unit,
     onSendFeedback: () -> Unit,
+    onExportDecks: () -> Unit,
+    onImportDecks: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -206,7 +209,29 @@ fun HardwareGuideScreen(
             }
         }
 
-        // Tester feedback: goes to the team as a GitHub issue
+        // Backups: everything in one file, to keep or move to another phone
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CapsuleShape)
+                .background(Surface1)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Your decks", color = InkLight, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            Text(
+                "Save every deck, pad, sound and your Spew Vault to one file. Keep it safe, or open it on another phone to bring everything back.",
+                color = InkMuted,
+                fontSize = 13.sp,
+                lineHeight = 18.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SoftButton(text = "Export decks", onClick = onExportDecks)
+                SoftButton(text = "Import decks", onClick = onImportDecks, light = false)
+            }
+        }
+
+        // Tester feedback: goes to the team
         StatusCard(
             title = "Found a bug or got an idea?",
             body = "Tell the team. The speech bubble at the top does the same from any screen.",

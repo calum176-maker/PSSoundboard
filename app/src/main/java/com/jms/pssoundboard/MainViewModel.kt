@@ -15,6 +15,7 @@ import com.jms.pssoundboard.audio.SoundboardEngine
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoiceFxProcessor
 import com.jms.pssoundboard.audio.VoicePreset
+import com.jms.pssoundboard.data.BackupRepository
 import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
@@ -50,6 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val vaultRepository: SpewVaultRepository = app.vaultRepository
     private val recorder = ClipRecorder(application)
     private val feedback = FeedbackRepository(application)
+    private val backups = BackupRepository(application, repository, vaultRepository)
 
     val deck: StateFlow<DeckState> = repository.state
     val ready: StateFlow<Boolean> = repository.ready
@@ -110,6 +112,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (sent > 0) _messages.tryEmit("Sent $sent saved feedback ${if (sent == 1) "report" else "reports"}")
         }
     }
+
+    // ---- Backups (export / import everything) -----------------------------------------------
+
+    fun exportDecks(uri: Uri) {
+        viewModelScope.launch {
+            _busyMessage.value = "Saving your decks…"
+            runCatching { backups.export(uri) }
+                .onSuccess { s ->
+                    _messages.tryEmit("Saved ${count(s.decks, "deck")} and ${count(s.sounds, "sound")}")
+                }
+                .onFailure { _messages.tryEmit("Couldn't save the backup: ${it.message ?: it.javaClass.simpleName}") }
+            _busyMessage.value = null
+        }
+    }
+
+    /** Replaces decks and vault with a backup; the snackbar offers Undo, which puts the old ones back. */
+    fun importDecks(uri: Uri) {
+        viewModelScope.launch {
+            _busyMessage.value = "Bringing your decks back…"
+            runCatching { backups.read(uri) }
+                .onSuccess { restored ->
+                    val oldDeck = deck.value
+                    val oldVault = spewEntries.value
+                    repository.restore(restored.deck)
+                    vaultRepository.restore(restored.vault)
+                    val missing = if (restored.missing > 0) " (${count(restored.missing, "sound")} missing)" else ""
+                    _undoMessages.tryEmit(
+                        UndoableMessage("Imported ${count(restored.deck.boards.size, "deck")} and ${count(restored.sounds, "sound")}$missing") {
+                            repository.restore(oldDeck)
+                            vaultRepository.restore(oldVault)
+                            viewModelScope.launch(Dispatchers.IO) { restored.dir.deleteRecursively() }
+                        }
+                    )
+                }
+                .onFailure { _messages.tryEmit("Couldn't import: ${it.message ?: it.javaClass.simpleName}") }
+            _busyMessage.value = null
+        }
+    }
+
+    private fun count(n: Int, noun: String) = "$n ${if (n == 1) noun else noun + "s"}"
 
     // ---- Tester feedback --------------------------------------------------------------------
 
