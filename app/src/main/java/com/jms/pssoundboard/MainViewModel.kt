@@ -163,7 +163,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val feedbackConfigured: Boolean get() = feedback.isConfigured
 
     /**
-     * Sends feedback to the team (it becomes a GitHub issue). Builds without an endpoint hand the
+     * Sends feedback to the team (it becomes a card on the team's board). Builds without an endpoint hand the
      * report to [onShare] instead, so testers can still pass it on by message or email.
      */
     fun sendFeedback(
