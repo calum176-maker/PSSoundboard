@@ -1,5 +1,23 @@
 package com.jms.pssoundboard
 
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.jms.pssoundboard.ui.theme.CableAmber
+import com.jms.pssoundboard.ui.theme.ChipBlob
+import com.jms.pssoundboard.ui.theme.Ground
+import com.jms.pssoundboard.ui.theme.InkLight
+import com.jms.pssoundboard.ui.theme.InkMuted
+import com.jms.pssoundboard.ui.theme.InkOnBlob
+import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PlayfulIcons
+import com.jms.pssoundboard.ui.theme.SpewYellow
+import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.gummy
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -121,9 +139,10 @@ class MainActivity : ComponentActivity() {
         // Keep screen awake while open
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Ensure system status bar icons (clock, battery, notifications) are crisp and dark on the white status bar background
+        // Light status and navigation bar icons over the dark app
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
 
         setContent {
@@ -178,6 +197,7 @@ fun MainScreen(
     val outputDeviceName by viewModel.outputDeviceName.collectAsState()
     val gain by viewModel.gain.collectAsState()
     val isTestTonePlaying by viewModel.testTonePlaying.collectAsState()
+    val playingPads by viewModel.playingPads.collectAsState()
     val previewingId by viewModel.previewingId.collectAsState()
     val busyMessage by viewModel.busyMessage.collectAsState()
     val spewEntries by viewModel.spewEntries.collectAsState()
@@ -260,6 +280,7 @@ fun MainScreen(
                     0 -> LiveDeckScreen(
                         deckState = deckState,
                         gain = gain,
+                        playingPads = playingPads,
                         onSelectBoard = { viewModel.selectBoard(it) },
                         onRenameBoard = { bId, name -> viewModel.renameBoard(bId, name) },
                         onAddBoard = { name -> viewModel.addBoard(name) },
@@ -415,119 +436,62 @@ private fun TopStatusBar(
     onLaunchOverlay: () -> Unit,
 ) {
     val overlayRunning by FloatingOverlayService.running.collectAsState()
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Phone System Info Bar Background: Pure white, covering the device status bar area
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .background(Color.White)
-        )
-
-        // Obvious Crisp Border separating phone top information bar from the app
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.5.dp)
-                .background(Color(0xFFB0B0B0))
-        )
-
-        // Subtle spacer to bring app down slightly away from camera cutout and info bar
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // App Top Bar Header
-        Surface(
-            color = SlateSurface,
-            modifier = Modifier.fillMaxWidth()
+    val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Ground)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(start = 18.dp, end = 14.dp, top = 8.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Brand Title
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(Teal)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "PS SOUNDBOARD",
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
-                            letterSpacing = 1.sp
-                        )
-                    }
+            Box(
+                modifier = Modifier
+                    .size(width = 10.dp, height = 9.dp)
+                    .clip(ChipBlob)
+                    .background(statusColour)
+            )
+            Text(
+                text = if (loopbackConnected) "Loopback cable in: spews go to party"
+                else "Speaker mode: plug in the loopback cable to spew into party",
+                color = statusColour,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 16.sp,
+                maxLines = 2
+            )
+        }
 
-                    // Floating Overlay Mini-Deck Launcher Button
-                    Button(
-                        onClick = onLaunchOverlay,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (overlayRunning) PanicRed else Teal
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 10.dp, vertical = 4.dp
-                        )
-                    ) {
-                        Text(
-                            text = if (overlayRunning) "■ Close Mini-Deck" else "❖ Mini-Deck Overlay",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Live Hardware Status Pill
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (loopbackConnected) ReadyGreen.copy(alpha = 0.20f)
-                            else WarningAmber.copy(alpha = 0.20f)
-                        )
-                        .border(
-                            1.dp,
-                            if (loopbackConnected) ReadyGreen.copy(alpha = 0.8f)
-                            else WarningAmber.copy(alpha = 0.8f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(vertical = 4.dp, horizontal = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(if (loopbackConnected) ReadyGreen else WarningAmber)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (loopbackConnected)
-                                "LOOPBACK PLUG READY (USB/TRRS Active)"
-                            else
-                                "NO LOOPBACK DETECTED (Speaker Mode)",
-                            color = if (loopbackConnected) ReadyGreen else WarningAmber,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                }
-            }
+        val miniDeckShape = PadShape.CLOUD.shape
+        Box(
+            modifier = Modifier
+                .size(width = 52.dp, height = 48.dp)
+                .then(
+                    if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
+                    else Modifier.clip(miniDeckShape).background(Surface2)
+                )
+                .clickable(
+                    onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
+                    role = Role.Button,
+                    onClick = onLaunchOverlay
+                )
+                .semantics {
+                    contentDescription = if (overlayRunning) "Mini-deck, on" else "Mini-deck, off"
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = PlayfulIcons.MiniDeck,
+                contentDescription = null,
+                tint = if (overlayRunning) InkOnBlob else InkLight,
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }
@@ -537,44 +501,52 @@ private fun BottomNavBar(
     currentTab: Int,
     onSelectTab: (Int) -> Unit,
 ) {
-    NavigationBar(
-        containerColor = SlateSurface,
-        tonalElevation = 8.dp
+    val tabs = listOf(
+        "Deck" to PlayfulIcons.Deck,
+        "Vault" to PlayfulIcons.Vault,
+        "Library" to PlayfulIcons.Library,
+        "Voice" to PlayfulIcons.Voice,
+        "Setup" to PlayfulIcons.Setup,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Ground)
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .selectableGroup()
     ) {
-        val tabs = listOf(
-            "Live Deck" to "🎮",
-            "Spew Vault" to "⚡",
-            "Sound Library" to "🌐",
-            "Voice FX" to "🎙️",
-            "Hardware Guide" to "🔌"
-        )
-
         tabs.forEachIndexed { index, (label, icon) ->
-            val isSelected = currentTab == index
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { onSelectTab(index) },
-                icon = {
-                    Text(
-                        text = icon,
-                        fontSize = 18.sp
+            val selected = currentTab == index
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelectTab(index) })
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 32.dp)
+                        .then(if (selected) Modifier.gummy(SpewYellow, ChipBlob) else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (selected) InkOnBlob else InkMuted,
+                        modifier = Modifier.size(20.dp)
                     )
-                },
-                label = {
-                    Text(
-                        text = label,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = TealBright,
-                    selectedTextColor = TealBright,
-                    indicatorColor = Teal.copy(alpha = 0.35f),
-                    unselectedIconColor = SlateTextMuted,
-                    unselectedTextColor = SlateTextMuted
+                }
+                Text(
+                    text = label,
+                    color = if (selected) InkLight else InkMuted,
+                    fontSize = 13.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1
                 )
-            )
+            }
         }
     }
 }

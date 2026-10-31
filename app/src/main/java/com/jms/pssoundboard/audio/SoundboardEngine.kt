@@ -6,6 +6,7 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaMetadataRetriever
 import android.media.SoundPool
 import android.os.Handler
 import android.os.Looper
@@ -79,6 +80,8 @@ class SoundboardEngine(context: Context) {
     private val pendingPlays = HashMap<Int, MutableList<PendingPlay>>()
     private val padStreams = HashMap<String, MutableList<Int>>()
     private val heldPads = HashSet<String>()
+    private val sampleDurationMs = HashMap<Int, Long>()
+    private val playingEnds = HashMap<String, Runnable>()
 
     // ---- Observable state -------------------------------------------------------------------
 
@@ -99,6 +102,13 @@ class SoundboardEngine(context: Context) {
 
     private val _loadedCount = MutableStateFlow(0)
     val loadedCount: StateFlow<Int> = _loadedCount.asStateFlow()
+
+    /**
+     * Pad keys that are currently sounding. SoundPool has no completion callback, so one-shots
+     * are cleared after the clip's length; looping (Hold) pads stay until released or stopped.
+     */
+    private val _playingPads = MutableStateFlow<Set<String>>(emptySet())
+    val playingPads: StateFlow<Set<String>> = _playingPads.asStateFlow()
 
     // ---- Audio focus ------------------------------------------------------------------------
 
@@ -173,12 +183,42 @@ class SoundboardEngine(context: Context) {
         val id = soundPool.load(path, 1)
         if (id == 0) return null
         sampleIds[path] = id
+        readDurationMs(path)?.let { sampleDurationMs[id] = it }
         return id
+    }
+
+    private fun readDurationMs(path: String): Long? = runCatching {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(path)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+        } finally {
+            retriever.release()
+        }
+    }.getOrNull()
+
+    private fun markPlaying(padKey: String, sampleId: Int, looping: Boolean) {
+        playingEnds.remove(padKey)?.let { mainHandler.removeCallbacks(it) }
+        _playingPads.value = _playingPads.value + padKey
+        if (!looping) {
+            val end = Runnable {
+                playingEnds.remove(padKey)
+                _playingPads.value = _playingPads.value - padKey
+            }
+            playingEnds[padKey] = end
+            mainHandler.postDelayed(end, sampleDurationMs[sampleId] ?: 1_000L)
+        }
+    }
+
+    private fun markStopped(padKey: String) {
+        playingEnds.remove(padKey)?.let { mainHandler.removeCallbacks(it) }
+        if (padKey in _playingPads.value) _playingPads.value = _playingPads.value - padKey
     }
 
     fun unload(path: String) {
         val id = sampleIds.remove(path) ?: return
         soundPool.unload(id)
+        sampleDurationMs.remove(id)
         loadedSamples.remove(id)
         failedSamples.remove(id)
         pendingPlays.remove(id)
@@ -260,18 +300,23 @@ class SoundboardEngine(context: Context) {
             list += streamId
             // SoundPool evicts the oldest stream beyond MAX_STREAMS; keep bookkeeping bounded.
             while (list.size > MAX_STREAMS) list.removeAt(0)
+            markPlaying(padKey, sampleId, looping = loop != 0)
         }
         scheduleFocusRelease()
     }
 
     fun stopPad(padKey: String) {
         padStreams.remove(padKey)?.forEach { soundPool.stop(it) }
+        markStopped(padKey)
     }
 
     /** Panic button. */
     fun stopAll() {
         padStreams.values.flatten().forEach { soundPool.stop(it) }
         padStreams.clear()
+        playingEnds.values.forEach { mainHandler.removeCallbacks(it) }
+        playingEnds.clear()
+        _playingPads.value = emptySet()
         pendingPlays.clear()
         heldPads.clear()
         _testTonePlaying.value = false

@@ -29,6 +29,8 @@ data class Pad(
     val colorHex: String = "#334155",
     val mode: PlaybackMode = PlaybackMode.ONE_SHOT,
     val filePath: String? = null,
+    /** Blob shape name (see PadShape); null picks a varied default from the slot. */
+    val shape: String? = null,
 )
 
 data class Board(

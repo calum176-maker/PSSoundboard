@@ -6,13 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val SoundboardColorScheme = darkColorScheme(
-    primary = Teal,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF004D4D),
-    onPrimaryContainer = Color(0xFFB2F5EA),
+    primary = SpewYellow,
+    onPrimary = InkOnBlob,
+    primaryContainer = Color(0xFF4A3410),
+    onPrimaryContainer = Color(0xFFFFE2A8),
     secondary = TealBright,
-    onSecondary = Color(0xFF00201F),
-    tertiary = WarningAmber,
+    onSecondary = Ground,
+    tertiary = CableAmber,
     error = PanicRed,
     onError = Color.White,
     background = SlateBackground,
