@@ -1,5 +1,9 @@
 package com.jms.pssoundboard.ui.screens
 
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -131,136 +135,192 @@ fun LiveDeckScreen(
         if (activeIndex >= 0) chipListState.animateScrollToItem(activeIndex)
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = activeBoard.name,
-                    color = InkLight,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 38.sp,
-                    lineHeight = 36.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-            LazyRow(
-                state = chipListState,
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(deckState.boards, key = { it.id }) { board ->
-                    val isActive = board.id == activeBoard.id
-                    Row(
-                        modifier = Modifier
-                            .height(44.dp)
-                            .clip(ChipBlob)
-                            .background(if (isActive) InkLight else Surface2)
-                            .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
-                                if (isActive) managingBoard = board else onSelectBoard(board.id)
-                            }
-                            .padding(start = 16.dp, end = if (isActive) 7.dp else 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = board.name,
-                            color = if (isActive) Ground else InkLight,
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                            maxLines = 1
-                        )
-                        if (isActive) {
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
-                                    .background(Ground.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(PlayfulIcons.Edit, contentDescription = null, tint = Ground, modifier = Modifier.size(15.dp))
-                            }
+    @Composable
+    fun DeckTitle(titleSize: TextUnit) {
+        Column(
+            modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = activeBoard.name,
+                color = InkLight,
+                fontFamily = BricolageCondensed,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = titleSize,
+                lineHeight = titleSize * 0.95f,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+
+    @Composable
+    fun DeckChips() {
+        LazyRow(
+            state = chipListState,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items(deckState.boards, key = { it.id }) { board ->
+                val isActive = board.id == activeBoard.id
+                Row(
+                    modifier = Modifier
+                        .height(44.dp)
+                        .clip(ChipBlob)
+                        .background(if (isActive) InkLight else Surface2)
+                        .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
+                            if (isActive) managingBoard = board else onSelectBoard(board.id)
+                        }
+                        .padding(start = 16.dp, end = if (isActive) 7.dp else 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = board.name,
+                        color = if (isActive) Ground else InkLight,
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        maxLines = 1
+                    )
+                    if (isActive) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(Ground.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(PlayfulIcons.Edit, contentDescription = null, tint = Ground, modifier = Modifier.size(15.dp))
                         }
                     }
                 }
-                item(key = "add_deck") {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 48.dp, height = 44.dp)
-                            .clip(CircleShape)
-                            .background(Surface2)
-                            .clickable(onClickLabel = "Add a deck") { isAddingBoard = true }
-                            .semantics { contentDescription = "Add a deck" },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(PlayfulIcons.Plus, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
-                    }
+            }
+            item(key = "add_deck") {
+                Box(
+                    modifier = Modifier
+                        .size(width = 48.dp, height = 44.dp)
+                        .clip(CircleShape)
+                        .background(Surface2)
+                        .clickable(onClickLabel = "Add a deck") { isAddingBoard = true }
+                        .semantics { contentDescription = "Add a deck" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(PlayfulIcons.Plus, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
                 }
             }
+        }
+    }
 
-            PadGrid(
-                board = activeBoard,
-                deckState = deckState,
-                heroSlot = heroSlot,
-                playingPads = playingPads,
-                onPressPad = onPressPad,
-                onReleasePad = onReleasePad,
-                onEditPad = onEditPad,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+    @Composable
+    fun VolumePill() {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .clip(RoundedCornerShape(26.dp))
+                .background(FieldBackground)
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Volume", color = InkMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Slider(
+                value = gain,
+                onValueChange = onSetGain,
+                valueRange = 0.10f..1.00f,
+                colors = SliderDefaults.colors(
+                    thumbColor = SpewYellow,
+                    activeTrackColor = SpewYellow,
+                    inactiveTrackColor = Surface2
+                ),
+                modifier = Modifier.weight(1f)
             )
+            Text(
+                text = "${(gain * 100).roundToInt()}%",
+                color = InkLight,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+        }
+    }
 
+    Box(modifier = modifier.fillMaxSize()) {
+        if (landscape) {
+            // Landscape: deck controls in a left column, pads in a wide 2-row grid.
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(FieldBackground)
-                    .padding(horizontal = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .fillMaxSize()
+                    .padding(start = 6.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Volume", color = InkMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Slider(
-                    value = gain,
-                    onValueChange = onSetGain,
-                    valueRange = 0.10f..1.00f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = SpewYellow,
-                        activeTrackColor = SpewYellow,
-                        inactiveTrackColor = Surface2
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "${(gain * 100).roundToInt()}%",
-                    color = InkLight,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                Column(
+                    modifier = Modifier
+                        .width(240.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    DeckTitle(30.sp)
+                    DeckChips()
+                    Spacer(modifier = Modifier.weight(1f))
+                    VolumePill()
+                }
+                PadGrid(
+                    board = activeBoard,
+                    deckState = deckState,
+                    heroSlot = heroSlot,
+                    playingPads = playingPads,
+                    landscape = true,
+                    onPressPad = onPressPad,
+                    onReleasePad = onReleasePad,
+                    onEditPad = onEditPad,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
             }
-            Spacer(modifier = Modifier.height(2.dp))
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                DeckTitle(38.sp)
+                DeckChips()
+                PadGrid(
+                    board = activeBoard,
+                    deckState = deckState,
+                    heroSlot = heroSlot,
+                    playingPads = playingPads,
+                    landscape = false,
+                    onPressPad = onPressPad,
+                    onReleasePad = onReleasePad,
+                    onEditPad = onEditPad,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+                VolumePill()
+                Spacer(modifier = Modifier.height(2.dp))
+            }
         }
 
         // Stop all only exists while something is spewing; it bounces in over the bottom of the deck.
         AnimatedVisibility(
             visible = playingPads.isNotEmpty(),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 78.dp),
+            modifier = if (landscape) {
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 40.dp, bottom = 68.dp)
+            } else {
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 78.dp)
+            },
             enter = scaleIn(spring(dampingRatio = 0.45f, stiffness = 500f)) + fadeIn(),
             exit = scaleOut() + fadeOut()
         ) {
@@ -468,6 +528,7 @@ private fun PadGrid(
     deckState: DeckState,
     heroSlot: Int?,
     playingPads: Set<String>,
+    landscape: Boolean,
     onPressPad: (PadRef, Pad) -> Unit,
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
@@ -492,6 +553,23 @@ private fun PadGrid(
                 modifier = cellModifier
             )
         }
+    }
+
+    if (landscape) {
+        // 6 x 2; a favourite becomes a tall pad on the left (normal styling: the column is narrow).
+        val others = (0 until PADS_PER_BOARD).filter { it != heroSlot }
+        Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(gap)) {
+            if (heroSlot != null) Cell(heroSlot, false, Modifier.weight(1f).fillMaxHeight())
+            Column(Modifier.weight(6f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                others.chunked(6).forEach { rowSlots ->
+                    Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        rowSlots.forEach { Cell(it, false, Modifier.weight(1f).fillMaxHeight()) }
+                        repeat(6 - rowSlots.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
+        return
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(gap)) {

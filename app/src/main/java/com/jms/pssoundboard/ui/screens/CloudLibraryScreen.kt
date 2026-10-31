@@ -450,7 +450,8 @@ fun CloudLibraryScreen(
                         )
                         val source = when {
                             item.url != null -> "online"
-                            item.builtinId != null -> "built-in"
+                            // Built-in items already say so in their category.
+                            item.builtinId != null && !item.category.contains("built-in", ignoreCase = true) -> "built-in"
                             else -> null
                         }
                         Text(

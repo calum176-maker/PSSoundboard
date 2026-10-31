@@ -1,5 +1,9 @@
 package com.jms.pssoundboard
 
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
@@ -210,7 +214,8 @@ fun MainScreen(
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
-    var currentTab by remember { mutableIntStateOf(0) }
+    var currentTab by rememberSaveable { mutableIntStateOf(0) }
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -241,22 +246,39 @@ fun MainScreen(
         containerColor = SlateBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopStatusBar(
-                loopbackConnected = loopbackConnected,
-                onLaunchOverlay = onLaunchOverlay
-            )
+            if (!landscape) {
+                TopStatusBar(
+                    loopbackConnected = loopbackConnected,
+                    onLaunchOverlay = onLaunchOverlay
+                )
+            }
         },
         bottomBar = {
-            BottomNavBar(
-                currentTab = currentTab,
-                onSelectTab = { currentTab = it }
-            )
+            if (!landscape) {
+                BottomNavBar(
+                    currentTab = currentTab,
+                    onSelectTab = { currentTab = it }
+                )
+            }
         }
     ) { innerPadding ->
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+        ) {
+        if (landscape) {
+            SideNavRail(
+                currentTab = currentTab,
+                onSelectTab = { currentTab = it },
+                loopbackConnected = loopbackConnected,
+                onLaunchOverlay = onLaunchOverlay
+            )
+        }
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         ) {
             if (!isReady) {
                 Box(
@@ -347,7 +369,7 @@ fun MainScreen(
             }
 
             // Busy Overlay Indicator
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = busyMessage != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -374,6 +396,7 @@ fun MainScreen(
                     }
                 }
             }
+        }
         }
     }
 
@@ -435,7 +458,6 @@ private fun TopStatusBar(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
 ) {
-    val overlayRunning by FloatingOverlayService.running.collectAsState()
     val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
     Row(
         modifier = Modifier
@@ -468,31 +490,7 @@ private fun TopStatusBar(
             )
         }
 
-        val miniDeckShape = PadShape.CLOUD.shape
-        Box(
-            modifier = Modifier
-                .size(width = 52.dp, height = 48.dp)
-                .then(
-                    if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
-                    else Modifier.clip(miniDeckShape).background(Surface2)
-                )
-                .clickable(
-                    onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
-                    role = Role.Button,
-                    onClick = onLaunchOverlay
-                )
-                .semantics {
-                    contentDescription = if (overlayRunning) "Mini-deck, on" else "Mini-deck, off"
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PlayfulIcons.MiniDeck,
-                contentDescription = null,
-                tint = if (overlayRunning) InkOnBlob else InkLight,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+        MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
     }
 }
 
@@ -501,13 +499,6 @@ private fun BottomNavBar(
     currentTab: Int,
     onSelectTab: (Int) -> Unit,
 ) {
-    val tabs = listOf(
-        "Deck" to PlayfulIcons.Deck,
-        "Vault" to PlayfulIcons.Vault,
-        "Library" to PlayfulIcons.Library,
-        "Voice" to PlayfulIcons.Voice,
-        "Setup" to PlayfulIcons.Setup,
-    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -516,7 +507,7 @@ private fun BottomNavBar(
             .padding(horizontal = 6.dp, vertical = 4.dp)
             .selectableGroup()
     ) {
-        tabs.forEachIndexed { index, (label, icon) ->
+        NavTabs.forEachIndexed { index, (label, icon) ->
             val selected = currentTab == index
             Column(
                 modifier = Modifier
@@ -548,5 +539,104 @@ private fun BottomNavBar(
                 )
             }
         }
+    }
+}
+
+private val NavTabs = listOf(
+    "Deck" to PlayfulIcons.Deck,
+    "Vault" to PlayfulIcons.Vault,
+    "Library" to PlayfulIcons.Library,
+    "Voice" to PlayfulIcons.Voice,
+    "Setup" to PlayfulIcons.Setup,
+)
+
+@Composable
+private fun MiniDeckButton(onLaunchOverlay: () -> Unit) {
+    val overlayRunning by FloatingOverlayService.running.collectAsState()
+    val miniDeckShape = PadShape.CLOUD.shape
+    Box(
+        modifier = Modifier
+            .size(width = 52.dp, height = 48.dp)
+            .then(
+                if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
+                else Modifier.clip(miniDeckShape).background(Surface2)
+            )
+            .clickable(
+                onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
+                role = Role.Button,
+                onClick = onLaunchOverlay
+            )
+            .semantics {
+                contentDescription = if (overlayRunning) "Mini-deck, on" else "Mini-deck, off"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = PlayfulIcons.MiniDeck,
+            contentDescription = null,
+            tint = if (overlayRunning) InkOnBlob else InkLight,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+/** Landscape navigation: the bottom bar's tabs stacked down the left, with status and mini-deck below. */
+@Composable
+private fun SideNavRail(
+    currentTab: Int,
+    onSelectTab: (Int) -> Unit,
+    loopbackConnected: Boolean,
+    onLaunchOverlay: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(84.dp)
+            .fillMaxHeight()
+            .background(Ground)
+            .padding(vertical = 6.dp)
+            .selectableGroup(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        NavTabs.forEachIndexed { index, (label, icon) ->
+            val selected = currentTab == index
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelectTab(index) })
+                    .padding(vertical = 1.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 48.dp, height = 26.dp)
+                        .then(if (selected) Modifier.gummy(SpewYellow, ChipBlob) else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = if (selected) InkOnBlob else InkMuted, modifier = Modifier.size(20.dp))
+                }
+                Text(
+                    text = label,
+                    color = if (selected) InkLight else InkMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
+        Box(
+            modifier = Modifier
+                .size(width = 12.dp, height = 11.dp)
+                .clip(ChipBlob)
+                .background(statusColour)
+                .semantics {
+                    contentDescription = if (loopbackConnected) "Loopback cable in" else "Speaker mode, no loopback cable"
+                }
+        )
+        MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
     }
 }
