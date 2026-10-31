@@ -1,5 +1,7 @@
 package com.jms.pssoundboard.ui.screens
 
+import com.jms.pssoundboard.ui.components.SoftButton
+import com.jms.pssoundboard.ui.components.StatusCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +68,7 @@ fun HardwareGuideScreen(
     outputDeviceName: String?,
     isTestTonePlaying: Boolean,
     onToggleTestTone: () -> Unit,
+    onSendFeedback: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -202,6 +205,16 @@ fun HardwareGuideScreen(
                 HintLine("While you play, tap the mini-deck button (top right, or bottom of the side bar when the phone is sideways) to keep your pads over the PS App.")
             }
         }
+
+        // Tester feedback: goes to the team as a GitHub issue
+        StatusCard(
+            title = "Found a bug or got an idea?",
+            body = "Tell the team. The speech bubble at the top does the same from any screen.",
+            art = {
+                Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkLight, modifier = Modifier.size(28.dp))
+            },
+            action = { SoftButton(text = "Send feedback", onClick = onSendFeedback) }
+        )
     }
 }
 

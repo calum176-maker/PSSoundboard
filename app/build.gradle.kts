@@ -1,7 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// In-app feedback endpoint. Set in local.properties (never committed) or the environment:
+//   feedback.url=https://…/webhook/pssoundboard-feedback   (PSSB_FEEDBACK_URL)
+//   feedback.key=…                                          (PSSB_FEEDBACK_KEY)
+// Builds without them still work: the feedback sheet falls back to sharing the report.
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun feedbackSetting(key: String, env: String): String =
+    (localProps.getProperty(key) ?: System.getenv(env) ?: "").replace("\"", "")
 
 android {
     namespace = "com.jms.pssoundboard"
@@ -18,6 +30,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "FEEDBACK_URL", "\"${feedbackSetting("feedback.url", "PSSB_FEEDBACK_URL")}\"")
+        buildConfigField("String", "FEEDBACK_KEY", "\"${feedbackSetting("feedback.key", "PSSB_FEEDBACK_KEY")}\"")
     }
 
     buildTypes {
@@ -34,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

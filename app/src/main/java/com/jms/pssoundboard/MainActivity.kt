@@ -1,5 +1,8 @@
 package com.jms.pssoundboard
 
+import com.jms.pssoundboard.ui.dialogs.FeedbackScreens
+import com.jms.pssoundboard.ui.dialogs.FeedbackDialog
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalConfiguration
@@ -215,6 +218,8 @@ fun MainScreen(
     val activePresetId by viewModel.activePresetId.collectAsState()
 
     var currentTab by rememberSaveable { mutableIntStateOf(0) }
+    var showFeedback by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -249,7 +254,8 @@ fun MainScreen(
             if (!landscape) {
                 TopStatusBar(
                     loopbackConnected = loopbackConnected,
-                    onLaunchOverlay = onLaunchOverlay
+                    onLaunchOverlay = onLaunchOverlay,
+                    onFeedback = { showFeedback = true }
                 )
             }
         },
@@ -272,7 +278,8 @@ fun MainScreen(
                 currentTab = currentTab,
                 onSelectTab = { currentTab = it },
                 loopbackConnected = loopbackConnected,
-                onLaunchOverlay = onLaunchOverlay
+                onLaunchOverlay = onLaunchOverlay,
+                onFeedback = { showFeedback = true }
             )
         }
         Box(
@@ -363,7 +370,8 @@ fun MainScreen(
                         headsetMicDetected = headsetMicDetected,
                         outputDeviceName = outputDeviceName,
                         isTestTonePlaying = isTestTonePlaying,
-                        onToggleTestTone = { viewModel.toggleTestTone() }
+                        onToggleTestTone = { viewModel.toggleTestTone() },
+                        onSendFeedback = { showFeedback = true }
                     )
                 }
             }
@@ -398,6 +406,25 @@ fun MainScreen(
             }
         }
         }
+    }
+
+    if (showFeedback) {
+        FeedbackDialog(
+            initialScreen = FeedbackScreens.getOrElse(currentTab) { "Somewhere else" },
+            configured = viewModel.feedbackConfigured,
+            onSend = { category, screen, message, includeDetails ->
+                showFeedback = false
+                viewModel.sendFeedback(category, screen, message, includeDetails) { report ->
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "PSSoundboard feedback")
+                        putExtra(Intent.EXTRA_TEXT, report)
+                    }
+                    context.startActivity(Intent.createChooser(send, "Share feedback"))
+                }
+            },
+            onDismiss = { showFeedback = false }
+        )
     }
 
     // Pad Editor Dialog
@@ -457,6 +484,7 @@ fun MainScreen(
 private fun TopStatusBar(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
+    onFeedback: () -> Unit,
 ) {
     val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
     Row(
@@ -490,7 +518,22 @@ private fun TopStatusBar(
             )
         }
 
+        FeedbackButton(onFeedback = onFeedback)
         MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
+    }
+}
+
+@Composable
+private fun FeedbackButton(onFeedback: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(ChipBlob)
+            .clickable(onClickLabel = "Send feedback to the team", role = Role.Button, onClick = onFeedback)
+            .semantics { contentDescription = "Send feedback" },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkMuted, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -587,6 +630,7 @@ private fun SideNavRail(
     onSelectTab: (Int) -> Unit,
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
+    onFeedback: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -627,6 +671,7 @@ private fun SideNavRail(
             }
         }
         Spacer(modifier = Modifier.weight(1f))
+        FeedbackButton(onFeedback = onFeedback)
         val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
         Box(
             modifier = Modifier

@@ -15,6 +15,7 @@ import com.jms.pssoundboard.audio.SoundboardEngine
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoiceFxProcessor
 import com.jms.pssoundboard.audio.VoicePreset
+import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
@@ -48,6 +49,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: SoundRepository = app.repository
     private val vaultRepository: SpewVaultRepository = app.vaultRepository
     private val recorder = ClipRecorder(application)
+    private val feedback = FeedbackRepository(application)
 
     val deck: StateFlow<DeckState> = repository.state
     val ready: StateFlow<Boolean> = repository.ready
@@ -102,6 +104,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // Load default trending sounds on launch
         searchOnline("")
+        // Send any feedback that could not go out last time
+        viewModelScope.launch {
+            val sent = feedback.retryPending()
+            if (sent > 0) _messages.tryEmit("Sent $sent saved feedback ${if (sent == 1) "report" else "reports"}")
+        }
+    }
+
+    // ---- Tester feedback --------------------------------------------------------------------
+
+    val feedbackConfigured: Boolean get() = feedback.isConfigured
+
+    /**
+     * Sends feedback to the team (it becomes a GitHub issue). Builds without an endpoint hand the
+     * report to [onShare] instead, so testers can still pass it on by message or email.
+     */
+    fun sendFeedback(
+        category: String,
+        screen: String,
+        message: String,
+        includeDetails: Boolean,
+        onShare: (String) -> Unit,
+    ) {
+        val details = if (includeDetails) {
+            feedback.deviceDetails(
+                mapOf("loopback_cable" to if (loopbackConnected.value) "plugged in" else "not plugged in")
+            )
+        } else {
+            null
+        }
+        val report = feedback.buildReport(category, screen, message, details)
+        if (!feedback.isConfigured) {
+            onShare(feedback.reportAsText(report))
+            return
+        }
+        viewModelScope.launch {
+            val outcome = feedback.send(report)
+            _messages.tryEmit(
+                when {
+                    outcome.sent && outcome.issueNumber != null -> "Thanks! Sent to the team as issue #${outcome.issueNumber}"
+                    outcome.sent -> "Thanks! Feedback sent to the team"
+                    else -> "Couldn't send right now. It's saved and will go next time you open the app."
+                }
+            )
+        }
     }
 
     // ---- Live deck & Spew logging -----------------------------------------------------------
