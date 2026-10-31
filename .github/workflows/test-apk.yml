@@ -1,5 +1,5 @@
 # Builds a test APK for every pull request and every change to main.
-# Changes to main are also published as a GitHub release, so the newest APK is always at:
+# Changes to main (and "Run workflow" on main) are also published as a GitHub release, so the newest APK is always at:
 #   https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
@@ -74,7 +74,8 @@ jobs:
           path: PSSoundboard.apk
 
       - name: Publish release
-        if: github.event_name == 'push' && steps.signing.outputs.signed == 'true'
+        # Merges to main publish, and so does "Run workflow" on main (Actions tab).
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signing.outputs.signed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
