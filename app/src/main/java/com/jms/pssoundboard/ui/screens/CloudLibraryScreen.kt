@@ -77,8 +77,10 @@ fun CloudLibraryScreen(
     isLoadingMore: Boolean,
     hasMoreResults: Boolean,
     totalOnlineCount: Int,
+    searchFailed: Boolean,
     previewingId: String?,
     onSearchOnline: (String) -> Unit,
+    onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
     onSpewDirectly: (LibraryItem) -> Unit,
     onTogglePreview: (LibraryItem) -> Unit,
@@ -452,6 +454,16 @@ fun CloudLibraryScreen(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            if (!isSearchingOnline && (searchFailed || (searchQuery.isNotBlank() && displayedItems.isEmpty()))) {
+                item(key = "search_status") {
+                    SearchStatusRow(
+                        failed = searchFailed,
+                        query = searchQuery,
+                        onRetry = onRetrySearch
+                    )
+                }
+            }
+
             items(displayedItems, key = { it.id }) { item ->
                 val isPreviewing = previewingId == item.id
                 val isSelected = selectedItemIds.contains(item.id)
@@ -817,6 +829,47 @@ fun CloudLibraryScreen(
                             Text("Equip", fontWeight = FontWeight.Bold)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Shown above the list when the online search failed, or a search found nothing. */
+@Composable
+private fun SearchStatusRow(failed: Boolean, query: String, onRetry: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = SlateSurface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (failed) WarningAmber else SlateOutline),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = if (failed) "Can't reach the online library" else "No sounds found for \"$query\"",
+                    color = if (failed) WarningAmber else SlateText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+                Text(
+                    text = if (failed) "Check your connection and try again. Built-in sounds still work offline."
+                    else "Try a shorter or different search.",
+                    color = SlateTextMuted,
+                    fontSize = 11.sp
+                )
+            }
+            if (failed) {
+                OutlinedButton(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TealBright),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Teal)
+                ) {
+                    Text("Retry", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }

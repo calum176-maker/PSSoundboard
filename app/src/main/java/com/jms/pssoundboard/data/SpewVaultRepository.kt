@@ -113,8 +113,14 @@ class SpewVaultRepository(
         schedulePersist()
     }
 
-    fun deleteEntry(id: String) {
-        _entries.update { current -> current.filterNot { it.id == id } }
+    fun deleteEntries(ids: Set<String>) {
+        _entries.update { current -> current.filterNot { it.id in ids } }
+        schedulePersist()
+    }
+
+    /** Puts back a snapshot taken before a delete or clear (Undo). */
+    fun restore(snapshot: List<SpewEntry>) {
+        _entries.value = snapshot
         schedulePersist()
     }
 

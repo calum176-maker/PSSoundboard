@@ -117,6 +117,9 @@ class SoundRepository(
         schedulePersist()
     }
 
+    /** Puts back a snapshot taken before a destructive change (Undo). */
+    fun restore(snapshot: DeckState) = mutate { snapshot }
+
     fun setActiveBoard(boardId: String) = mutate { it.copy(activeBoardId = boardId) }
 
     fun setGain(gain: Float) = mutate { it.copy(gain = gain) }

@@ -1,6 +1,8 @@
 package com.jms.pssoundboard
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -42,8 +44,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.model.Pad
@@ -98,12 +103,16 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (Settings.canDrawOverlays(this)) {
-            FloatingOverlayService.start(this)
-            Toast.makeText(this, "Floating Mini-Deck Launched!", Toast.LENGTH_SHORT).show()
+            startOverlay()
         } else {
             Toast.makeText(this, "Overlay permission is needed for Mini-Deck", Toast.LENGTH_LONG).show()
         }
     }
+
+    // The overlay works without notifications, but then its Close action is hidden, so start either way.
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { startOverlay() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,8 +142,14 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Floating Mini-Deck Closed", Toast.LENGTH_SHORT).show()
         } else {
             if (Settings.canDrawOverlays(this)) {
-                FloatingOverlayService.start(this)
-                Toast.makeText(this, "Mini-Deck Floating Over Apps!", Toast.LENGTH_SHORT).show()
+                val needsNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+                if (needsNotificationPermission) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    startOverlay()
+                }
             } else {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -143,6 +158,11 @@ class MainActivity : ComponentActivity() {
                 overlayPermissionLauncher.launch(intent)
             }
         }
+    }
+
+    private fun startOverlay() {
+        FloatingOverlayService.start(this)
+        Toast.makeText(this, "Mini-Deck Floating Over Apps!", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -166,6 +186,7 @@ fun MainScreen(
     val isLoadingMoreOnline by viewModel.isLoadingMoreOnline.collectAsState()
     val hasMoreOnlineResults by viewModel.hasMoreOnlineResults.collectAsState()
     val totalOnlineCount by viewModel.totalOnlineCount.collectAsState()
+    val onlineSearchFailed by viewModel.onlineSearchFailed.collectAsState()
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
@@ -182,6 +203,17 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         viewModel.messages.collectLatest { msg ->
             snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.undoMessages.collectLatest { msg ->
+            val result = snackbarHostState.showSnackbar(
+                message = msg.text,
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) msg.undo()
         }
     }
 
@@ -245,7 +277,7 @@ fun MainScreen(
                         onSpewEntry = { viewModel.spewFromVault(it) },
                         onEquipItem = { equippingItem = it },
                         onTogglePin = { viewModel.togglePinSpew(it) },
-                        onDeleteEntry = { viewModel.deleteSpewEntry(it) },
+                        onDeleteEntries = { viewModel.deleteSpewEntries(it) },
                         onClearAll = { viewModel.clearSpewVault() },
                         onSaveToDownloads = { viewModel.saveSpewEntryToDownloads(it) },
                         onSaveMultipleToDownloads = { viewModel.saveMultipleSpewEntriesToDownloads(it) },
@@ -257,8 +289,10 @@ fun MainScreen(
                         isLoadingMore = isLoadingMoreOnline,
                         hasMoreResults = hasMoreOnlineResults,
                         totalOnlineCount = totalOnlineCount,
+                        searchFailed = onlineSearchFailed,
                         previewingId = previewingId,
                         onSearchOnline = { viewModel.searchOnline(it) },
+                        onRetrySearch = { viewModel.retryOnlineSearch() },
                         onLoadMore = { viewModel.loadMoreOnline() },
                         onSpewDirectly = { viewModel.spewDirectly(it) },
                         onTogglePreview = { viewModel.togglePreview(it) },
@@ -380,6 +414,7 @@ private fun TopStatusBar(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
 ) {
+    val overlayRunning by FloatingOverlayService.running.collectAsState()
     Column(modifier = Modifier.fillMaxWidth()) {
         // Phone System Info Bar Background: Pure white, covering the device status bar area
         Box(
@@ -433,7 +468,7 @@ private fun TopStatusBar(
                     Button(
                         onClick = onLaunchOverlay,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (FloatingOverlayService.isRunning) PanicRed else Teal
+                            containerColor = if (overlayRunning) PanicRed else Teal
                         ),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -441,7 +476,7 @@ private fun TopStatusBar(
                         )
                     ) {
                         Text(
-                            text = if (FloatingOverlayService.isRunning) "■ Close Mini-Deck" else "❖ Mini-Deck Overlay",
+                            text = if (overlayRunning) "■ Close Mini-Deck" else "❖ Mini-Deck Overlay",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp

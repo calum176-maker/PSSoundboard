@@ -40,10 +40,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,6 +75,9 @@ import com.jms.pssoundboard.ui.theme.SlateText
 import com.jms.pssoundboard.ui.theme.SlateTextMuted
 import com.jms.pssoundboard.ui.theme.Teal
 import com.jms.pssoundboard.ui.theme.toComposeColor
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
 
 /**
@@ -88,8 +93,11 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         private const val NOTIFICATION_ID = 4040
         private const val CHANNEL_ID = "floating_deck_channel"
 
-        var isRunning: Boolean = false
-            private set
+        private val _running = MutableStateFlow(false)
+
+        /** Observable so the in-app toggle button updates as soon as the overlay starts or stops. */
+        val running: StateFlow<Boolean> = _running.asStateFlow()
+        val isRunning: Boolean get() = _running.value
 
         fun start(context: Context) {
             val intent = Intent(context, FloatingOverlayService::class.java).apply {
@@ -163,7 +171,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 if (overlayView == null) {
                     showOverlay()
                 }
-                isRunning = true
+                _running.value = true
             }
         }
         return START_STICKY
@@ -218,7 +226,6 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun showOverlay() {
         if (overlayView != null) return
 
@@ -267,34 +274,10 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
             }
         }
 
-        // Setup touch listener for dragging the entire overlay window
-        composeView.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = layoutParams.x
-                    initialY = layoutParams.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    isDragging = false
-                    false
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = (event.rawX - initialTouchX).toInt()
-                    val dy = (event.rawY - initialTouchY).toInt()
-                    if (abs(dx) > 10 || abs(dy) > 10 || isDragging) {
-                        isDragging = true
-                        layoutParams.x = initialX + dx
-                        layoutParams.y = initialY + dy
-                        runCatching { windowManager.updateViewLayout(overlayView, layoutParams) }
-                        true
-                    } else {
-                        false
-                    }
-                }
-                MotionEvent.ACTION_UP -> {
-                    isDragging
-                }
-                else -> false
+        // Expanding next to an edge would push the deck off screen, so re-fit after any resize.
+        composeView.addOnLayoutChangeListener { _, l, t, r, b, oldL, oldT, oldR, oldB ->
+            if (r - l != oldR - oldL || b - t != oldB - oldT) {
+                composeView.post { moveOverlayTo(layoutParams.x, layoutParams.y) }
             }
         }
 
@@ -311,8 +294,74 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         }
     }
 
+    /**
+     * Drag handle for the overlay window. A listener on the ComposeView itself never sees touches
+     * that Compose consumes (the bubble could not be dragged), so the handle reads the raw
+     * MotionEvent instead. Raw screen coordinates stay stable while the window moves under the
+     * finger. A press that never passes the drag threshold counts as a tap.
+     */
+    @OptIn(ExperimentalComposeUiApi::class)
+    private fun Modifier.overlayDragHandle(onTap: (() -> Unit)? = null): Modifier =
+        pointerInteropFilter { event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = layoutParams.x
+                    initialY = layoutParams.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    isDragging = false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = (event.rawX - initialTouchX).toInt()
+                    val dy = (event.rawY - initialTouchY).toInt()
+                    if (isDragging || abs(dx) > 10 || abs(dy) > 10) {
+                        isDragging = true
+                        moveOverlayTo(initialX + dx, initialY + dy)
+                    }
+                }
+                MotionEvent.ACTION_UP -> if (!isDragging) onTap?.invoke()
+                MotionEvent.ACTION_CANCEL -> isDragging = false
+            }
+            true
+        }
+
+    /**
+     * Moves the window, keeping it on screen and clear of the status and navigation bars, where
+     * the system would take the next drag and the overlay could no longer be grabbed.
+     */
+    private fun moveOverlayTo(x: Int, y: Int) {
+        val view = overlayView ?: return
+        val left: Int
+        val top: Int
+        val right: Int
+        val bottom: Int
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val metrics = windowManager.currentWindowMetrics
+            val bars = metrics.windowInsets.getInsetsIgnoringVisibility(
+                android.view.WindowInsets.Type.systemBars() or
+                    android.view.WindowInsets.Type.mandatorySystemGestures()
+            )
+            left = 0
+            top = bars.top
+            right = metrics.bounds.width()
+            bottom = metrics.bounds.height() - bars.bottom
+        } else {
+            val dm = resources.displayMetrics
+            left = 0; top = 0; right = dm.widthPixels; bottom = dm.heightPixels
+        }
+        // Layout coordinates can be offset from screen coordinates (e.g. below the status bar).
+        val onScreen = IntArray(2).also { view.getLocationOnScreen(it) }
+        val offsetX = onScreen[0] - layoutParams.x
+        val offsetY = onScreen[1] - layoutParams.y
+        val minX = left - offsetX
+        val minY = top - offsetY
+        layoutParams.x = x.coerceIn(minX, (right - view.width - offsetX).coerceAtLeast(minX))
+        layoutParams.y = y.coerceIn(minY, (bottom - view.height - offsetY).coerceAtLeast(minY))
+        updateOverlayWindow()
+    }
+
     override fun onDestroy() {
-        isRunning = false
+        _running.value = false
         overlayView?.let {
             runCatching { windowManager.removeView(it) }
             overlayView = null
@@ -335,9 +384,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 .clip(CircleShape)
                 .background(Teal.copy(alpha = 0.92f))
                 .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = { onClick() })
-                },
+                .overlayDragHandle(onTap = onClick),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -384,7 +431,12 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .overlayDragHandle(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(10.dp)
@@ -436,7 +488,10 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 text = "Hold & drag top bar to reposition over PS App",
                 color = SlateTextMuted,
                 fontSize = 10.sp,
-                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .overlayDragHandle()
+                    .padding(top = 2.dp, bottom = 8.dp)
             )
 
             // 3 x 2 grid of favorite / active pads

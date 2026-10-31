@@ -67,7 +67,7 @@ fun SpewVaultScreen(
     onSpewEntry: (SpewEntry) -> Unit,
     onEquipItem: (LibraryItem) -> Unit,
     onTogglePin: (String) -> Unit,
-    onDeleteEntry: (String) -> Unit,
+    onDeleteEntries: (Set<String>) -> Unit,
     onClearAll: () -> Unit,
     onSaveToDownloads: (SpewEntry) -> Unit,
     onSaveMultipleToDownloads: (List<SpewEntry>) -> Unit,
@@ -313,7 +313,7 @@ fun SpewVaultScreen(
                                     text = { Text("🗑️ Delete Selected from Vault", color = PanicRed, fontSize = 12.sp) },
                                     onClick = {
                                         batchMenuExpanded = false
-                                        selectedEntryIds.forEach { onDeleteEntry(it) }
+                                        onDeleteEntries(selectedEntryIds)
                                         selectedEntryIds = emptySet()
                                     }
                                 )
@@ -599,7 +599,7 @@ fun SpewVaultScreen(
                                         text = { Text("🗑️ Delete from Vault", color = PanicRed, fontSize = 12.sp) },
                                         onClick = {
                                             itemMenuExpanded = false
-                                            onDeleteEntry(entry.id)
+                                            onDeleteEntries(setOf(entry.id))
                                         }
                                     )
                                     DropdownMenuItem(
