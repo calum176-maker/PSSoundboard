@@ -2,6 +2,15 @@
 
 An advanced, zero-latency Android soundboard and real-time voice changer designed specifically for mobile gaming, party chat (such as the PlayStation App), and live audio broadcasting via a 3.5mm TRRS hardware loopback cable.
 
+## 📲 Get the test build
+
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/calum176-maker/PSSoundboard)
+
+- **With [Obtainium](https://obtainium.imranr.dev/)** (recommended): tap the badge on your phone and it installs the app, then tells you whenever a new build is out.
+- **Directly**: [download the latest PSSoundboard.apk](https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk) and open it.
+
+A new test build is published every time a change is merged. Coming from an older copy that wasn't installed from here? Use **Setup → Your decks → Export decks** first, uninstall, install the new one, then **Import decks**.
+
 ---
 
 ## ✨ Key Features

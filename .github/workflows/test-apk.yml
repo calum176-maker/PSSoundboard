@@ -1,6 +1,7 @@
 # Builds a test APK for every pull request and every change to main.
 # Changes to main (and "Run workflow" on main) are also published as a GitHub release, so the newest APK is always at:
 #   https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk
+# and Obtainium can track the releases for automatic updates (badge in README.md).
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
 #   PSSB_KEYSTORE_B64       shared test signing key, base64 (every build installs over the last)
@@ -29,7 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PSSB_VERSION_CODE: ${{ github.run_number }}
-      PSSB_VERSION_NAME: 1.0 (build ${{ github.run_number }})
+      # Version name and release tag share one format (1.0.N / v1.0.N) so Obtainium can tell what is installed.
+      PSSB_VERSION_NAME: 1.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -100,11 +102,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo "Test build ${{ github.run_number }} from \`${GITHUB_SHA::7}\`."
+            echo "Test build 1.0.${{ github.run_number }} from \`${GITHUB_SHA::7}\`."
             echo
             echo "**Install:** download PSSoundboard.apk below on your phone and open it."
             echo "Before your first install from here, use Setup > Your decks > Export decks, then uninstall the old app (it was signed differently). After that, each new build installs over the last."
           } > notes.md
           # --generate-notes appends the pull requests merged since the previous build.
-          gh release create "build-${{ github.run_number }}" PSSoundboard.apk \
-            --title "Test build ${{ github.run_number }}" --notes-file notes.md --generate-notes --target "$GITHUB_SHA"
+          gh release create "v1.0.${{ github.run_number }}" PSSoundboard.apk \
+            --title "Test build 1.0.${{ github.run_number }}" --notes-file notes.md --generate-notes --target "$GITHUB_SHA"
