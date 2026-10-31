@@ -1,27 +1,37 @@
 package com.jms.pssoundboard.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -40,9 +50,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,26 +66,42 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.model.Board
 import com.jms.pssoundboard.data.model.DeckState
+import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.theme.BricolageCondensed
+import com.jms.pssoundboard.ui.theme.ChipBlob
+import com.jms.pssoundboard.ui.theme.FieldBackground
+import com.jms.pssoundboard.ui.theme.Ground
+import com.jms.pssoundboard.ui.theme.InkLight
+import com.jms.pssoundboard.ui.theme.InkMuted
+import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PanicRed
+import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.SlateBackground
 import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateSurface
-import com.jms.pssoundboard.ui.theme.SlateSurfaceHigh
 import com.jms.pssoundboard.ui.theme.SlateText
 import com.jms.pssoundboard.ui.theme.SlateTextMuted
+import com.jms.pssoundboard.ui.theme.SpewYellow
+import com.jms.pssoundboard.ui.theme.StopRed
+import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.Teal
 import com.jms.pssoundboard.ui.theme.TealBright
 import com.jms.pssoundboard.ui.theme.WarningAmber
-import com.jms.pssoundboard.ui.theme.toComposeColor
+import com.jms.pssoundboard.ui.theme.gummy
+import com.jms.pssoundboard.ui.theme.inkOn
+import com.jms.pssoundboard.ui.theme.padColour
+import com.jms.pssoundboard.ui.theme.spewPulse
 import kotlin.math.roundToInt
+
+private val StopInk = Color(0xFF1F0604)
 
 @Composable
 fun LiveDeckScreen(
     deckState: DeckState,
     gain: Float,
+    playingPads: Set<String>,
     onSelectBoard: (boardId: String) -> Unit,
     onRenameBoard: (boardId: String, name: String) -> Unit,
     onAddBoard: (name: String) -> Unit,
@@ -88,222 +119,167 @@ fun LiveDeckScreen(
     var managingBoard by remember { mutableStateOf<Board?>(null) }
     var isAddingBoard by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Switchable Soundboard Pages (Scrollable Tabs)
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+    // The first favourite on this deck that has a sound becomes the double-size hero pad.
+    val heroSlot = activeBoard.pads.firstOrNull { pad ->
+        pad.filePath != null && PadRef(activeBoard.id, pad.slot) in deckState.favorites
+    }?.slot
+
+    // Keep the selected deck's chip in view, e.g. after switching decks from the mini-deck.
+    val chipListState = rememberLazyListState()
+    val activeIndex = deckState.boards.indexOfFirst { it.id == activeBoard.id }
+    LaunchedEffect(activeIndex) {
+        if (activeIndex >= 0) chipListState.animateScrollToItem(activeIndex)
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(deckState.boards, key = { it.id }) { board ->
-                val isActive = board.id == activeBoard.id
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isActive) Teal else SlateSurface)
-                        .border(
-                            1.dp,
-                            if (isActive) Color.White.copy(alpha = 0.9f) else SlateOutline,
-                            RoundedCornerShape(10.dp)
-                        )
-                        .clickable { onSelectBoard(board.id) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
+            Column(
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = activeBoard.name,
+                    color = InkLight,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 38.sp,
+                    lineHeight = 36.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            LazyRow(
+                state = chipListState,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(deckState.boards, key = { it.id }) { board ->
+                    val isActive = board.id == activeBoard.id
                     Row(
+                        modifier = Modifier
+                            .height(44.dp)
+                            .clip(ChipBlob)
+                            .background(if (isActive) InkLight else Surface2)
+                            .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
+                                if (isActive) managingBoard = board else onSelectBoard(board.id)
+                            }
+                            .padding(start = 16.dp, end = if (isActive) 7.dp else 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = board.name,
-                            color = if (isActive) Color.White else SlateText,
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp
+                            color = if (isActive) Ground else InkLight,
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            maxLines = 1
                         )
                         if (isActive) {
                             Box(
                                 modifier = Modifier
+                                    .size(30.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.25f))
-                                    .clickable { managingBoard = board }
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    .background(Ground.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "⚙",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Icon(PlayfulIcons.Edit, contentDescription = null, tint = Ground, modifier = Modifier.size(15.dp))
                             }
                         }
                     }
                 }
-            }
-
-            // "+ New Deck" Button
-            item {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SlateSurfaceHigh)
-                        .border(1.dp, SlateOutline, RoundedCornerShape(10.dp))
-                        .clickable { isAddingBoard = true }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "+ New Deck",
-                        color = TealBright,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-
-        // Active Deck Header Indicator
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(TealBright)
-                )
-                Text(
-                    text = activeBoard.name.uppercase(),
-                    color = TealBright,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 12.sp,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "• ${activeBoard.pads.count { it.filePath != null }}/12 sounds",
-                    color = SlateTextMuted,
-                    fontSize = 11.sp
-                )
-            }
-            Text(
-                text = "Tap: Fire • Hold: Loop • Long-press: Edit",
-                color = SlateTextMuted,
-                fontSize = 10.sp
-            )
-        }
-
-        // 3x4 Responsive Tactile Pad Grid (12 Pads with per-pad key isolation)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                for (row in 0 until 4) {
-                    Row(
+                item(key = "add_deck") {
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .size(width = 48.dp, height = 44.dp)
+                            .clip(CircleShape)
+                            .background(Surface2)
+                            .clickable(onClickLabel = "Add a deck") { isAddingBoard = true }
+                            .semantics { contentDescription = "Add a deck" },
+                        contentAlignment = Alignment.Center
                     ) {
-                        for (col in 0 until 3) {
-                            val slot = row * 3 + col
-                            val pad = activeBoard.pads.getOrNull(slot) ?: Pad(slot = slot)
-                            val padRef = PadRef(activeBoard.id, slot)
-                            val isFav = deckState.favorites.contains(padRef)
-
-                            key(padRef.key) {
-                                TactilePad(
-                                    padRef = padRef,
-                                    pad = pad,
-                                    isFavorite = isFav,
-                                    onPress = { onPressPad(padRef, pad) },
-                                    onRelease = { onReleasePad(padRef, pad) },
-                                    onLongClick = { onEditPad(activeBoard.id, pad) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxSize()
-                                )
-                            }
-                        }
+                        Icon(PlayfulIcons.Plus, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
                     }
                 }
             }
-        }
 
-        // Loopback Output Gain Slider (10% - 100%)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(SlateSurface)
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = "LOOPBACK GAIN",
-                color = SlateTextMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
+            PadGrid(
+                board = activeBoard,
+                deckState = deckState,
+                heroSlot = heroSlot,
+                playingPads = playingPads,
+                onPressPad = onPressPad,
+                onReleasePad = onReleasePad,
+                onEditPad = onEditPad,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
             )
-            Slider(
-                value = gain,
-                onValueChange = onSetGain,
-                valueRange = 0.10f..1.00f,
-                colors = SliderDefaults.colors(
-                    thumbColor = TealBright,
-                    activeTrackColor = Teal,
-                    inactiveTrackColor = SlateOutline
-                ),
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = "${(gain * 100).roundToInt()}%",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(end = 4.dp)
-            )
-        }
 
-        // Full-width STOP ALL SOUNDS Panic Button
-        Button(
-            onClick = onStopAll,
-            colors = ButtonDefaults.buttonColors(containerColor = PanicRed),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(FieldBackground)
+                    .padding(horizontal = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(Color.White, CircleShape)
+                Text("Volume", color = InkMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Slider(
+                    value = gain,
+                    onValueChange = onSetGain,
+                    valueRange = 0.10f..1.00f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = SpewYellow,
+                        activeTrackColor = SpewYellow,
+                        inactiveTrackColor = Surface2
+                    ),
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = "  ■  STOP ALL SOUNDS (PANIC)",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 14.sp,
-                    letterSpacing = 0.8.sp
+                    text = "${(gain * 100).roundToInt()}%",
+                    color = InkLight,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+
+        // Stop all only exists while something is spewing; it bounces in over the bottom of the deck.
+        AnimatedVisibility(
+            visible = playingPads.isNotEmpty(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 78.dp),
+            enter = scaleIn(spring(dampingRatio = 0.45f, stiffness = 500f)) + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
+            Row(
+                modifier = Modifier
+                    .height(64.dp)
+                    .gummy(StopRed, PadShape.PEBBLE.shape)
+                    .clickable(onClickLabel = "Stop all sounds", role = Role.Button) { onStopAll() }
+                    .padding(horizontal = 28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(PlayfulIcons.Stop, contentDescription = null, tint = StopInk, modifier = Modifier.size(18.dp))
+                Text(
+                    text = "Stop all",
+                    color = StopInk,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 21.sp
                 )
             }
         }
@@ -485,19 +461,87 @@ fun LiveDeckScreen(
     }
 }
 
+/** 3-column pad grid; with a favourite, it takes a double-size cell in the top-left corner. */
+@Composable
+private fun PadGrid(
+    board: Board,
+    deckState: DeckState,
+    heroSlot: Int?,
+    playingPads: Set<String>,
+    onPressPad: (PadRef, Pad) -> Unit,
+    onReleasePad: (PadRef, Pad) -> Unit,
+    onEditPad: (boardId: String, Pad) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val gap = 8.dp
+
+    @Composable
+    fun Cell(slot: Int, hero: Boolean, cellModifier: Modifier) {
+        val pad = board.pads.getOrNull(slot) ?: Pad(slot = slot)
+        val padRef = PadRef(board.id, slot)
+        key(padRef.key) {
+            TactilePad(
+                padRef = padRef,
+                pad = pad,
+                isFavorite = padRef in deckState.favorites,
+                isPlaying = padRef.key in playingPads,
+                isHero = hero,
+                onPress = { onPressPad(padRef, pad) },
+                onRelease = { onReleasePad(padRef, pad) },
+                onLongClick = { onEditPad(board.id, pad) },
+                modifier = cellModifier
+            )
+        }
+    }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
+        if (heroSlot == null) {
+            for (row in 0 until 4) {
+                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    for (col in 0 until 3) Cell(row * 3 + col, false, Modifier.weight(1f).fillMaxHeight())
+                }
+            }
+        } else {
+            val others = (0 until PADS_PER_BOARD).filter { it != heroSlot }
+            Row(Modifier.weight(2f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                Cell(heroSlot, true, Modifier.weight(2f).fillMaxHeight())
+                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
+                    Cell(others[0], false, Modifier.weight(1f).fillMaxWidth())
+                    Cell(others[1], false, Modifier.weight(1f).fillMaxWidth())
+                }
+            }
+            others.drop(2).chunked(3).forEach { rowSlots ->
+                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    rowSlots.forEach { Cell(it, false, Modifier.weight(1f).fillMaxHeight()) }
+                }
+            }
+        }
+    }
+}
+
+private val PlaybackMode.shortLabel: String
+    get() = when (this) {
+        PlaybackMode.ONE_SHOT -> "Tap"
+        PlaybackMode.HOLD_TO_PLAY -> "Hold"
+        PlaybackMode.RESTART_ON_SPAM -> "Restart"
+    }
+
 @Composable
 private fun TactilePad(
     padRef: PadRef,
     pad: Pad,
     isFavorite: Boolean,
+    isPlaying: Boolean,
+    isHero: Boolean,
     onPress: () -> Unit,
     onRelease: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isPressed by remember(padRef.key) { mutableStateOf(false) }
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1.0f,
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.45f, stiffness = 700f),
         label = "pad_press_scale"
     )
 
@@ -506,36 +550,37 @@ private fun TactilePad(
     val currentOnRelease by rememberUpdatedState(onRelease)
     val currentOnLongClick by rememberUpdatedState(onLongClick)
 
-    val baseColor = pad.colorHex.toComposeColor(Teal)
     val hasSound = pad.filePath != null
+    val shape = PadShape.of(pad.shape, pad.slot).shape
+    val colour = if (hasSound) padColour(pad.colorHex) else Surface2
+    val ink = if (hasSound) inkOn(colour) else InkMuted
+    val description = buildString {
+        append("Pad ${pad.slot + 1}, ")
+        append(if (hasSound) pad.title else "empty")
+        if (hasSound) append(", ${pad.mode.shortLabel}")
+        if (isFavorite) append(", favourite")
+        if (isPlaying) append(", spewing")
+    }
 
     Box(
         modifier = modifier
-            .scale(animatedScale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(
-                if (isPressed) {
-                    Brush.verticalGradient(
-                        colors = listOf(baseColor, baseColor.copy(alpha = 0.8f))
-                    )
-                } else if (hasSound) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            baseColor.copy(alpha = 0.55f),
-                            baseColor.copy(alpha = 0.30f)
-                        )
-                    )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(SlateSurfaceHigh, SlateSurface)
-                    )
+            .padding(if (isHero) 4.dp else 2.dp)
+            .scale(pressScale)
+            .spewPulse(isPlaying, colour, shape)
+            .then(if (hasSound) Modifier.gummy(colour, shape) else Modifier.clip(shape).background(Surface2))
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = description
+                onClick(label = "Spew") {
+                    currentOnPress()
+                    currentOnRelease()
+                    true
                 }
-            )
-            .border(
-                width = if (isPressed) 2.5.dp else if (hasSound) 1.5.dp else 1.dp,
-                color = if (isPressed) Color.White else if (hasSound) baseColor.copy(alpha = 0.85f) else SlateOutline,
-                shape = RoundedCornerShape(14.dp)
-            )
+                onLongClick(label = "Edit pad") {
+                    currentOnLongClick()
+                    true
+                }
+            }
             .pointerInput(padRef.key) {
                 detectTapGestures(
                     onPress = {
@@ -550,67 +595,58 @@ private fun TactilePad(
                     }
                 )
             }
-            .padding(8.dp)
+            .padding(if (isHero) PaddingValues(horizontal = 18.dp, vertical = 16.dp) else PaddingValues(horizontal = 8.dp, vertical = 6.dp)),
+        contentAlignment = if (isHero) Alignment.TopStart else Alignment.Center
     ) {
-        // Slot number + mini-deck favorite pin indicator
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${pad.slot + 1}",
-                color = if (hasSound) Color.White.copy(alpha = 0.7f) else SlateTextMuted.copy(alpha = 0.5f),
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp
-            )
-
-            if (isFavorite) {
-                Box(
+        if (isHero) {
+            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(
                     modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(TealBright)
-                )
-            }
-        }
-
-        // Title and Playback Mode Label
-        Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = pad.title,
-                color = if (hasSound) Color.White else SlateTextMuted,
-                fontWeight = if (hasSound) FontWeight.Black else FontWeight.Normal,
-                fontSize = 13.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                lineHeight = 15.sp
-            )
-
-            if (hasSound) {
-                Spacer(modifier = Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.35f))
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Ground.copy(alpha = 0.14f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Icon(PlayfulIcons.Star, contentDescription = null, tint = ink, modifier = Modifier.size(12.dp))
                     Text(
-                        text = when (pad.mode) {
-                            PlaybackMode.ONE_SHOT -> "ONE-SHOT"
-                            PlaybackMode.HOLD_TO_PLAY -> "HOLD"
-                            PlaybackMode.RESTART_ON_SPAM -> "RESTART"
-                        },
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
+                        text = if (isPlaying) "Favourite · spewing" else "Favourite",
+                        color = ink,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = pad.title,
+                    color = ink,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 40.sp,
+                    lineHeight = 38.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(pad.mode.shortLabel, color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (hasSound) pad.title else "Empty",
+                    color = ink,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = if (hasSound) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 17.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                if (hasSound) {
+                    Text(
+                        text = if (isPlaying) "Spewing" else pad.mode.shortLabel,
+                        color = ink,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

@@ -56,6 +56,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val headsetMicDetected: StateFlow<Boolean> = engine.headsetMicDetected
     val gain: StateFlow<Float> = engine.gain
     val testTonePlaying: StateFlow<Boolean> = engine.testTonePlaying
+    val playingPads: StateFlow<Set<String>> = engine.playingPads
 
     // Spew Vault: directory of every clip remembered when spewed
     val spewEntries: StateFlow<List<SpewEntry>> = vaultRepository.entries
