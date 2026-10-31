@@ -1,0 +1,9 @@
+# Add project specific R8 rules here.
+# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+#
+# For more details, see
+#   https://d.android.com/r/tools/r8/keep-rules
+
+# Gson-serialized deck state models (reflection based field names).
+-keep class com.jms.pssoundboard.data.model.** { *; }
+-keepclassmembers enum com.jms.pssoundboard.data.model.** { *; }
