@@ -16,7 +16,7 @@ import java.net.URL
 import java.time.Instant
 
 /**
- * Sends tester feedback to the team's webhook, which files it as a GitHub issue.
+ * Sends tester feedback to the team's webhook, which files it as a card on the team's private board.
  * Reports that cannot be sent (offline, server down) are kept and retried later.
  */
 class FeedbackRepository(context: Context) {
