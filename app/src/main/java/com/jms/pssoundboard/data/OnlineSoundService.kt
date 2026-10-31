@@ -128,6 +128,8 @@ object OnlineSoundService {
             }
 
             val responseCode = connection.responseCode
+            // The API answers 404 "Invalid page" past the last page (the total can shrink between requests).
+            if (responseCode == 404 && page > 1) return OnlineSearchResult(page = page)
             if (responseCode !in 200..299) {
                 Log.w(TAG, "Search returned HTTP $responseCode for '$query' (page $page)")
                 return OnlineSearchResult(page = page, failed = true)

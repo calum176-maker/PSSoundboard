@@ -84,9 +84,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _onlineSearchFailed = MutableStateFlow(false)
     val onlineSearchFailed: StateFlow<Boolean> = _onlineSearchFailed.asStateFlow()
 
+    /** The last "load more" failed; scrolling stops retrying until the user taps to try again. */
+    private val _loadMoreFailed = MutableStateFlow(false)
+    val loadMoreFailed: StateFlow<Boolean> = _loadMoreFailed.asStateFlow()
+
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
     private var searchJob: Job? = null
+    private var loadMoreJob: Job? = null
 
     private val _busyMessage = MutableStateFlow<String?>(null)
     val busyMessage: StateFlow<String?> = _busyMessage.asStateFlow()
@@ -420,11 +425,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun searchOnline(query: String) {
         searchJob?.cancel()
+        // A page still loading for the previous query would otherwise land on these results.
+        loadMoreJob?.cancel()
+        _isLoadingMoreOnline.value = false
         activeSearchQuery = query
         currentOnlinePage = 1
         _hasMoreOnlineResults.value = false
         _totalOnlineCount.value = 0
         _onlineSearchFailed.value = false
+        _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
             val pageResult = OnlineSoundService.searchSounds(query, page = 1)
@@ -444,8 +453,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun loadMoreOnline() {
         if (_isSearchingOnline.value || _isLoadingMoreOnline.value || !_hasMoreOnlineResults.value) return
         val nextPage = currentOnlinePage + 1
-        viewModelScope.launch {
+        loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
+            _loadMoreFailed.value = false
             val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
@@ -456,8 +466,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _hasMoreOnlineResults.value = pageResult.hasMore
                 _totalOnlineCount.value = pageResult.totalCount
             } else if (pageResult.failed) {
-                // Keep hasMore so scrolling retries once the connection is back.
-                _messages.tryEmit("Couldn't load more sounds. Check your connection.")
+                // Keep hasMore; the footer offers a retry button instead of retrying on every scroll.
+                _loadMoreFailed.value = true
             } else {
                 _hasMoreOnlineResults.value = false
             }
