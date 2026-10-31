@@ -25,6 +25,8 @@ import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
 import com.jms.pssoundboard.data.model.SpewEntry
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,8 +35,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+
+class UndoableMessage(val text: String, val undo: () -> Unit)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -71,6 +76,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _totalOnlineCount = MutableStateFlow(0)
     val totalOnlineCount: StateFlow<Int> = _totalOnlineCount.asStateFlow()
 
+    private val _onlineSearchFailed = MutableStateFlow(false)
+    val onlineSearchFailed: StateFlow<Boolean> = _onlineSearchFailed.asStateFlow()
+
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
     private var searchJob: Job? = null
@@ -80,6 +88,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val messages: SharedFlow<String> = _messages.asSharedFlow()
+
+    /** Messages for destructive actions; the snackbar offers Undo and calls [UndoableMessage.undo]. */
+    private val _undoMessages = MutableSharedFlow<UndoableMessage>(extraBufferCapacity = 4)
+    val undoMessages: SharedFlow<UndoableMessage> = _undoMessages.asSharedFlow()
 
     private val _previewingId = MutableStateFlow<String?>(null)
     val previewingId: StateFlow<String?> = _previewingId.asStateFlow()
@@ -133,11 +145,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addBoard(name: String) = repository.addBoard(name)
 
-    fun deleteBoard(boardId: String) = repository.deleteBoard(boardId)
+    fun deleteBoard(boardId: String) {
+        val name = deck.value.board(boardId)?.name ?: "Deck"
+        withDeckUndo("Deleted \"$name\"") { repository.deleteBoard(boardId) }
+    }
 
-    fun clearBoard(boardId: String) = repository.clearBoard(boardId)
+    fun clearBoard(boardId: String) {
+        val name = deck.value.board(boardId)?.name ?: "Deck"
+        withDeckUndo("Cleared all pads on \"$name\"") { repository.clearBoard(boardId) }
+    }
 
-    fun resetBoardToDefaults(boardId: String) = repository.resetBoardToDefaults(boardId)
+    fun resetBoardToDefaults(boardId: String) {
+        val name = deck.value.board(boardId)?.name ?: "Deck"
+        withDeckUndo("Reset \"$name\" to its default sounds") { repository.resetBoardToDefaults(boardId) }
+    }
+
+    // Undo restores the whole snapshot, so it also drops any other deck edit made while the
+    // snackbar was showing. That window is a few seconds, which is an acceptable trade.
+    private fun withDeckUndo(message: String, change: () -> Unit) {
+        val snapshot = deck.value
+        change()
+        _undoMessages.tryEmit(UndoableMessage(message) { repository.restore(snapshot) })
+    }
+
+    private fun withVaultUndo(message: String, change: () -> Unit) {
+        val snapshot = spewEntries.value
+        change()
+        _undoMessages.tryEmit(UndoableMessage(message) { vaultRepository.restore(snapshot) })
+    }
 
     fun builtinPath(clipId: String) = repository.builtinPath(clipId)
 
@@ -202,9 +237,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun togglePinSpew(id: String) = vaultRepository.togglePin(id)
 
-    fun deleteSpewEntry(id: String) = vaultRepository.deleteEntry(id)
+    fun deleteSpewEntries(ids: Set<String>) {
+        if (ids.isEmpty()) return
+        val label = if (ids.size == 1) {
+            "Removed \"${spewEntries.value.firstOrNull { it.id in ids }?.title ?: "clip"}\""
+        } else {
+            "Removed ${ids.size} clips"
+        }
+        withVaultUndo(label) { vaultRepository.deleteEntries(ids) }
+    }
 
-    fun clearSpewVault() = vaultRepository.clearAll()
+    fun clearSpewVault() {
+        val count = spewEntries.value.size
+        if (count == 0) return
+        withVaultUndo("Cleared $count ${if (count == 1) "clip" else "clips"} from the vault") {
+            vaultRepository.clearAll()
+        }
+    }
 
     // ---- Clipboard & Save to Storage --------------------------------------------------------
 
@@ -286,15 +335,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         currentOnlinePage = 1
         _hasMoreOnlineResults.value = false
         _totalOnlineCount.value = 0
+        _onlineSearchFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
             val pageResult = OnlineSoundService.searchSounds(query, page = 1)
+            _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
             _totalOnlineCount.value = pageResult.totalCount
             _isSearchingOnline.value = false
         }
     }
+
+    fun retryOnlineSearch() = searchOnline(activeSearchQuery)
 
     /**
      * Loads the next 10 sounds as the user scrolls down, appending them to the results.
@@ -313,6 +366,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 currentOnlinePage = nextPage
                 _hasMoreOnlineResults.value = pageResult.hasMore
                 _totalOnlineCount.value = pageResult.totalCount
+            } else if (pageResult.failed) {
+                // Keep hasMore so scrolling retries once the connection is back.
+                _messages.tryEmit("Couldn't load more sounds. Check your connection.")
             } else {
                 _hasMoreOnlineResults.value = false
             }
@@ -400,8 +456,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---- Clip creator -----------------------------------------------------------------------
 
+    /** Records from the mic. On failure, posts a message and returns an empty array. */
     suspend fun recordClip(stop: AtomicBoolean, onProgress: (Long, Float) -> Unit): FloatArray =
-        recorder.record(stop, onProgress)
+        recordSafely { recorder.record(stop, onProgress) }
+
+    private suspend fun recordSafely(block: suspend () -> FloatArray): FloatArray =
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _messages.tryEmit("Recording failed: ${e.message ?: e.javaClass.simpleName}")
+            FloatArray(0)
+        }
 
     suspend fun decodeForEditing(uri: Uri): AudioDecoder.Decoded = repository.decodeForEditing(uri)
 
@@ -466,11 +533,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         params: VoiceFxParams,
         stop: AtomicBoolean,
         onProgress: (Long, Float) -> Unit,
-    ): FloatArray {
+    ): FloatArray = recordSafely {
         val raw = recorder.record(stop, onProgress)
-        val processor = VoiceFxProcessor(ClipRecorder.SAMPLE_RATE)
-        processor.process(raw, raw.size, params)
-        return raw
+        withContext(Dispatchers.Default) {
+            VoiceFxProcessor(ClipRecorder.SAMPLE_RATE).process(raw, raw.size, params)
+        }
+        raw
     }
 
     fun saveProcessedVoiceClip(samples: FloatArray, title: String) {

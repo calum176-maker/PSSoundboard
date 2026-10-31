@@ -18,6 +18,8 @@ data class OnlineSearchResult(
     val totalCount: Int = 0,
     val hasMore: Boolean = false,
     val page: Int = 1,
+    /** True when the request itself failed (offline, timeout, HTTP error), as opposed to no matches. */
+    val failed: Boolean = false,
 )
 
 /**
@@ -72,12 +74,12 @@ object OnlineSoundService {
     suspend fun searchSounds(query: String, page: Int = 1): OnlineSearchResult = withContext(Dispatchers.IO) {
         val cleanQuery = query.trim()
         val cacheKey = "$cleanQuery:p$page"
-        cache[cacheKey]?.let { return@withContext it }
+        synchronized(cache) { cache[cacheKey] }?.let { return@withContext it }
 
         var result = fetchPage(cleanQuery, page)
 
         // Smart fallback on page 1: if cleanQuery returned 0 results, sanitize punctuation or try key terms
-        if (page == 1 && result.items.isEmpty() && cleanQuery.isNotBlank()) {
+        if (page == 1 && !result.failed && result.items.isEmpty() && cleanQuery.isNotBlank()) {
             val sanitized = cleanQuery
                 .replace(Regex("[^a-zA-Z0-9\\s]"), " ")
                 .trim()
@@ -102,7 +104,8 @@ object OnlineSoundService {
             }
         }
 
-        cache[cacheKey] = result
+        // Never cache a failure, or one offline search stays empty until the app restarts.
+        if (!result.failed) synchronized(cache) { cache[cacheKey] = result }
         result
     }
 
@@ -127,7 +130,7 @@ object OnlineSoundService {
             val responseCode = connection.responseCode
             if (responseCode !in 200..299) {
                 Log.w(TAG, "Search returned HTTP $responseCode for '$query' (page $page)")
-                return OnlineSearchResult(page = page)
+                return OnlineSearchResult(page = page, failed = true)
             }
 
             val jsonText = BufferedReader(InputStreamReader(connection.inputStream, Charsets.UTF_8)).use {
@@ -169,7 +172,7 @@ object OnlineSoundService {
             )
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to query online sounds for '$query' p$page: ${t.message}")
-            return OnlineSearchResult(page = page)
+            return OnlineSearchResult(page = page, failed = true)
         } finally {
             connection?.disconnect()
         }

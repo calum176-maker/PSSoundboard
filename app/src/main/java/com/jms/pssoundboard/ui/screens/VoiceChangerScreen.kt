@@ -1,6 +1,7 @@
 package com.jms.pssoundboard.ui.screens
 
 import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -96,22 +98,29 @@ fun VoiceChangerScreen(
         else VoicePreset.entries.filter { it.label.contains(searchQuery, ignoreCase = true) || it.id.contains(searchQuery, ignoreCase = true) }
     }
 
+    val context = LocalContext.current
+    var micDenied by remember { mutableStateOf(false) }
+
+    // Recording failures are reported by the ViewModel, which returns an empty array.
+    fun startRecording() {
+        val stop = AtomicBoolean(false)
+        stopRecordFlag = stop
+        isRecording = true
+        scope.launch {
+            val samples = onRecordAndProcess(voiceFxParams, stop) { ms, lvl ->
+                recordElapsedMs = ms
+                currentMicLevel = lvl
+            }
+            isRecording = false
+            if (samples.isNotEmpty()) lastProcessedSamples = samples
+        }
+    }
+
     val micPermLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            val stop = AtomicBoolean(false)
-            stopRecordFlag = stop
-            isRecording = true
-            scope.launch {
-                val samples = onRecordAndProcess(voiceFxParams, stop) { ms, lvl ->
-                    recordElapsedMs = ms
-                    currentMicLevel = lvl
-                }
-                isRecording = false
-                lastProcessedSamples = samples
-            }
-        }
+        micDenied = !granted
+        if (granted) startRecording()
     }
 
     LazyColumn(
@@ -239,17 +248,11 @@ fun VoiceChangerScreen(
                         if (!isRecording) {
                             Button(
                                 onClick = {
-                                    val stop = AtomicBoolean(false)
-                                    stopRecordFlag = stop
-                                    isRecording = true
-                                    scope.launch {
-                                        val samples = onRecordAndProcess(voiceFxParams, stop) { ms, lvl ->
-                                            recordElapsedMs = ms
-                                            currentMicLevel = lvl
-                                        }
-                                        isRecording = false
-                                        lastProcessedSamples = samples
-                                    }
+                                    val hasPerm = ContextCompat.checkSelfPermission(
+                                        context, Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                    if (hasPerm) startRecording()
+                                    else micPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = PanicRed),
                                 modifier = Modifier.weight(1f)
@@ -268,6 +271,14 @@ fun VoiceChangerScreen(
                                 Text("■ STOP RECORDING", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
+                    }
+
+                    if (micDenied && !isRecording) {
+                        Text(
+                            text = "Microphone access is off. Allow it when asked, or in Settings › Apps › PS Party Soundboard › Permissions.",
+                            color = WarningAmber,
+                            fontSize = 11.sp
+                        )
                     }
 
                     AnimatedVisibility(visible = isRecording) {
@@ -363,7 +374,7 @@ fun VoiceChangerScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
-                        if (activePresetId != VoiceFxParams.CUSTOM_ID) {
+                        if (activePresetId == VoiceFxParams.CUSTOM_ID) {
                             Text(
                                 text = "(Preset: Customized)",
                                 color = WarningAmber,
@@ -387,7 +398,7 @@ fun VoiceChangerScreen(
                                 onParamsChanged(voiceFxParams.copy(pitchSemitones = it, presetId = VoiceFxParams.CUSTOM_ID), VoiceFxParams.CUSTOM_ID)
                             },
                             valueRange = -12f..12f,
-                            steps = 24,
+                            steps = 23, // whole semitones: 25 positions from -12 to +12
                             colors = SliderDefaults.colors(thumbColor = TealBright, activeTrackColor = Teal)
                         )
                     }

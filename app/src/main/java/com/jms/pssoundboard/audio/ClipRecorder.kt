@@ -49,21 +49,25 @@ class ClipRecorder(private val context: Context) {
             AudioFormat.ENCODING_PCM_16BIT,
             max(minBuf, SAMPLE_RATE / 5 * 2),
         )
-        check(recorder.state == AudioRecord.STATE_INITIALIZED) { "Could not open the microphone" }
-
-        val audioManager = context.getSystemService(AudioManager::class.java)
-        audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
-            .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
-            ?.let { recorder.setPreferredDevice(it) }
-
         val out = FloatArrayBuilder(SAMPLE_RATE * MAX_SECONDS)
         val chunk = ShortArray(SAMPLE_RATE / 20) // 50 ms
         val maxFrames = SAMPLE_RATE * MAX_SECONDS
         try {
+            // Inside the try so the native recorder is released on every failure path.
+            check(recorder.state == AudioRecord.STATE_INITIALIZED) {
+                "Could not open the microphone. Another app may be using it."
+            }
+            val audioManager = context.getSystemService(AudioManager::class.java)
+            audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+                .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                ?.let { recorder.setPreferredDevice(it) }
+
             recorder.startRecording()
             while (currentCoroutineContext().isActive && !stopRequested.get() && out.size < maxFrames) {
                 val read = recorder.read(chunk, 0, chunk.size)
-                if (read <= 0) continue
+                // Negative values are errors (dead object, invalid operation) that never recover.
+                check(read >= 0) { "The microphone stopped responding (error $read)" }
+                if (read == 0) continue
                 var peak = 0f
                 for (i in 0 until read) {
                     val v = chunk[i] / 32768f
