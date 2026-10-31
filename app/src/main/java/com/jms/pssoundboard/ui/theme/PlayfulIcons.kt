@@ -55,4 +55,16 @@ object PlayfulIcons {
     val Edit = icon("edit", stroked = listOf("M12 20h9", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"))
     val Stop = icon("stop", filled = listOf("M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4z"))
     val Star = icon("star", filled = listOf("M12 2.5 15 9l7 .7-5.3 4.7 1.6 7L12 17.8 5.7 21.4l1.6-7L2 9.7 9 9z"))
+    val Play = icon("play", filled = listOf("M8 5.5v13l10.5-6.5z"))
+    val More = icon("more", filled = listOf(ellipse(5f, 12f, 2f, 2f), ellipse(12f, 12f, 2f, 2f), ellipse(19f, 12f, 2f, 2f)))
+    val Close = icon("close", stroked = listOf("M6 6l12 12M18 6 6 18"))
+    val Check = icon("check", stroked = listOf("M5 12.5l4.5 4.5L19 7.5"))
+    val Speaker = icon("speaker", stroked = listOf("M11 5 6 9H2v6h4l5 4z", "M15.5 8.5a5 5 0 0 1 0 7"))
+    val Download = icon("download", stroked = listOf("M12 4v11", "M7 10.5l5 5 5-5", "M5 20h14"))
+    val Copy = icon("copy", stroked = listOf("M9 9h10v11H9z", "M5 15V4h10"))
+    val Trash = icon("trash", stroked = listOf("M4 7h16", "M9 7V4h6v3", "M6.5 7l1 13h9l1-13"))
+    val Mic = Voice
+    val Folder = icon("folder", stroked = listOf("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"))
+    val Link = icon("link", stroked = listOf("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1", "M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
+    val ChevronDown = icon("chevron_down", stroked = listOf("M6 9l6 6 6-6"))
 }

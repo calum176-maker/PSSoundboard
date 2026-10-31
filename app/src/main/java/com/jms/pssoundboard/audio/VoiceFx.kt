@@ -43,24 +43,24 @@ enum class VoicePreset(
 ) {
     NATURAL("natural", "Natural", "🎤", "#334155", VoiceFxParams(presetId = "natural")),
     CHIPMUNK("chipmunk", "Chipmunk", "🐿️", "#F59E0B", VoiceFxParams(presetId = "chipmunk", pitchSemitones = 8f)),
-    DEEP("deep", "Deep Voice", "🗿", "#3B82F6", VoiceFxParams(presetId = "deep", pitchSemitones = -5f)),
+    DEEP("deep", "Deep", "🗿", "#3B82F6", VoiceFxParams(presetId = "deep", pitchSemitones = -5f)),
     DEMON(
         "demon", "Demon", "😈", "#EF4444",
         VoiceFxParams(presetId = "demon", pitchSemitones = -9f, drive = 0.35f, echo = 0.2f, echoMs = 90f),
     ),
     ROBOT("robot", "Robot", "🤖", "#14B8A6", VoiceFxParams(presetId = "robot", robot = 0.9f, robotHz = 55f, drive = 0.15f)),
-    RADIO("radio", "Pit Radio", "📻", "#22C55E", VoiceFxParams(presetId = "radio", radio = true, drive = 0.45f)),
+    RADIO("radio", "Radio", "📻", "#22C55E", VoiceFxParams(presetId = "radio", radio = true, drive = 0.45f)),
     ALIEN(
         "alien", "Alien", "👽", "#A855F7",
         VoiceFxParams(presetId = "alien", pitchSemitones = 5f, robot = 0.6f, robotHz = 420f, echo = 0.15f, echoMs = 140f),
     ),
-    CAVE("cave", "Cave Echo", "🦇", "#6366F1", VoiceFxParams(presetId = "cave", echo = 0.55f, echoMs = 260f)),
-    ARNOLD("arnold", "Arnold (Terminator)", "🦾", "#3B82F6", VoiceFxParams(presetId = "arnold", pitchSemitones = -4.5f, drive = 0.25f)),
-    VADER("vader", "Darth Vader", "🦹", "#1E293B", VoiceFxParams(presetId = "vader", pitchSemitones = -7.5f, robot = 0.3f, robotHz = 70f, echo = 0.25f)),
-    MORGAN("morgan", "Morgan Freeman", "🎙️", "#D97706", VoiceFxParams(presetId = "morgan", pitchSemitones = -3f, echo = 0.15f, echoMs = 180f)),
-    BATMAN("batman", "Dark Knight", "🦇", "#0F172A", VoiceFxParams(presetId = "batman", pitchSemitones = -6f, drive = 0.3f, echo = 0.2f)),
-    RAMSAY("ramsay", "Gordon Ramsay", "👨‍🍳", "#DC2626", VoiceFxParams(presetId = "ramsay", pitchSemitones = 1.5f, radio = true, drive = 0.4f)),
-    YODA("yoda", "Master Yoda", "🟢", "#10B981", VoiceFxParams(presetId = "yoda", pitchSemitones = 4.5f, echo = 0.2f));
+    CAVE("cave", "Cave", "🦇", "#6366F1", VoiceFxParams(presetId = "cave", echo = 0.55f, echoMs = 260f)),
+    ARNOLD("arnold", "Action Hero", "🦾", "#3B82F6", VoiceFxParams(presetId = "arnold", pitchSemitones = -4.5f, drive = 0.25f)),
+    VADER("vader", "Villain", "🦹", "#1E293B", VoiceFxParams(presetId = "vader", pitchSemitones = -7.5f, robot = 0.3f, robotHz = 70f, echo = 0.25f)),
+    MORGAN("morgan", "Narrator", "🎙️", "#D97706", VoiceFxParams(presetId = "morgan", pitchSemitones = -3f, echo = 0.15f, echoMs = 180f)),
+    BATMAN("batman", "Gravel", "🦇", "#0F172A", VoiceFxParams(presetId = "batman", pitchSemitones = -6f, drive = 0.3f, echo = 0.2f)),
+    RAMSAY("ramsay", "Angry Chef", "👨‍🍳", "#DC2626", VoiceFxParams(presetId = "ramsay", pitchSemitones = 1.5f, radio = true, drive = 0.4f)),
+    YODA("yoda", "Tiny Sage", "🟢", "#10B981", VoiceFxParams(presetId = "yoda", pitchSemitones = 4.5f, echo = 0.2f));
 
     companion object {
         fun byId(id: String): VoicePreset? = entries.firstOrNull { it.id == id }

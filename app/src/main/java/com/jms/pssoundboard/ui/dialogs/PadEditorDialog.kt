@@ -1,5 +1,19 @@
 package com.jms.pssoundboard.ui.dialogs
 
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.jms.pssoundboard.ui.theme.BricolageCondensed
+import com.jms.pssoundboard.ui.theme.InkLight
+import com.jms.pssoundboard.ui.theme.InkOnBlob
+import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.SpewYellow
+import com.jms.pssoundboard.ui.theme.Surface1
+import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.gummy
+import com.jms.pssoundboard.ui.theme.padColour
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,6 +85,7 @@ fun PadEditorDialog(
     var selectedMode by remember { mutableStateOf(pad.mode) }
     var favorite by remember { mutableStateOf(isFavorite) }
     var currentFilePath by remember { mutableStateOf(pad.filePath) }
+    var selectedShape by remember { mutableStateOf(PadShape.of(pad.shape, pad.slot)) }
 
     var modeMenuExpanded by remember { mutableStateOf(false) }
     var soundMenuExpanded by remember { mutableStateOf(false) }
@@ -80,9 +95,8 @@ fun PadEditorDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = SlateBackground,
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, Teal.copy(alpha = 0.6f))
+            shape = RoundedCornerShape(28.dp),
+            color = Surface1
         ) {
             Column(
                 modifier = Modifier
@@ -98,11 +112,11 @@ fun PadEditorDialog(
                 ) {
                     Column {
                         Text(
-                            text = "EDIT PAD ${pad.slot + 1}",
-                            color = Teal,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 18.sp,
-                            letterSpacing = 0.8.sp
+                            text = "Edit pad ${pad.slot + 1}",
+                            color = InkLight,
+                            fontFamily = BricolageCondensed,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp
                         )
                         Text(
                             text = "Deck: $boardName",
@@ -111,12 +125,11 @@ fun PadEditorDialog(
                         )
                     }
 
+                    // Live preview of the pad's colour and shape
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(selectedColor.toComposeColor(Teal))
-                            .border(1.5.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                            .size(width = 64.dp, height = 56.dp)
+                            .gummy(padColour(selectedColor), selectedShape.shape)
                     )
                 }
 
@@ -200,7 +213,7 @@ fun PadEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     PadPalette.take(6).forEach { hex ->
-                        ColorCircle(hex, isSelected = selectedColor == hex) { selectedColor = hex }
+                        ColorCircle(hex, isSelected = padColour(selectedColor) == padColour(hex)) { selectedColor = hex }
                     }
                 }
                 Row(
@@ -208,7 +221,43 @@ fun PadEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     PadPalette.drop(6).take(6).forEach { hex ->
-                        ColorCircle(hex, isSelected = selectedColor == hex) { selectedColor = hex }
+                        ColorCircle(hex, isSelected = padColour(selectedColor) == padColour(hex)) { selectedColor = hex }
+                    }
+                }
+
+                // Blob shape
+                Text(
+                    text = "SHAPE",
+                    color = SlateTextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectableGroup(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    PadShape.entries.forEach { option ->
+                        val selected = option == selectedShape
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .selectable(selected = selected, role = Role.RadioButton) { selectedShape = option }
+                                .semantics { contentDescription = "${option.label} shape" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (selected) 40.dp else 34.dp)
+                                    .then(
+                                        if (selected) Modifier.border(3.dp, InkLight, option.shape) else Modifier
+                                    )
+                                    .padding(if (selected) 4.dp else 0.dp)
+                                    .gummy(padColour(selectedColor), option.shape)
+                            )
+                        }
                     }
                 }
 
@@ -274,10 +323,10 @@ fun PadEditorDialog(
                     Button(
                         onClick = { currentFilePath?.let { onAudition(it) } },
                         enabled = currentFilePath != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal),
+                        colors = ButtonDefaults.buttonColors(containerColor = Surface2, contentColor = InkLight),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("▶ TEST", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Test", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
 
@@ -339,12 +388,13 @@ fun PadEditorDialog(
                                 title = title.ifBlank { "Pad ${pad.slot + 1}" },
                                 colorHex = selectedColor,
                                 mode = selectedMode,
-                                filePath = currentFilePath
+                                filePath = currentFilePath,
+                                shape = selectedShape.name
                             )
                             onSave(updated, favorite)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal),
-                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SpewYellow, contentColor = InkOnBlob),
+                        shape = RoundedCornerShape(22.dp),
                         modifier = Modifier.weight(1.3f)
                     ) {
                         Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -357,10 +407,10 @@ fun PadEditorDialog(
 
 @Composable
 private fun ColorCircle(hex: String, isSelected: Boolean, onClick: () -> Unit) {
-    val color = hex.toComposeColor(Teal)
+    val color = padColour(hex)
     Box(
         modifier = Modifier
-            .size(32.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .background(color)
             .border(
@@ -368,6 +418,7 @@ private fun ColorCircle(hex: String, isSelected: Boolean, onClick: () -> Unit) {
                 color = if (isSelected) Color.White else SlateOutline,
                 shape = CircleShape
             )
-            .clickable { onClick() }
+            .clickable(role = Role.RadioButton, onClickLabel = "Use this colour") { onClick() }
+            .semantics { contentDescription = if (isSelected) "Colour $hex, selected" else "Colour $hex" }
     )
 }

@@ -4,33 +4,24 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,17 +44,28 @@ import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.model.SpewEntry
 import com.jms.pssoundboard.data.model.VaultSortOrder
-import com.jms.pssoundboard.ui.theme.PanicRed
-import com.jms.pssoundboard.ui.theme.ReadyGreen
-import com.jms.pssoundboard.ui.theme.SlateBackground
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateSurface
-import com.jms.pssoundboard.ui.theme.SlateSurfaceHigh
-import com.jms.pssoundboard.ui.theme.SlateText
-import com.jms.pssoundboard.ui.theme.SlateTextMuted
-import com.jms.pssoundboard.ui.theme.Teal
-import com.jms.pssoundboard.ui.theme.TealBright
-import com.jms.pssoundboard.ui.theme.WarningAmber
+import com.jms.pssoundboard.ui.components.BlobChip
+import com.jms.pssoundboard.ui.components.CapsuleRow
+import com.jms.pssoundboard.ui.components.IconBlobButton
+import com.jms.pssoundboard.ui.components.PlayfulField
+import com.jms.pssoundboard.ui.components.PlayfulHeader
+import com.jms.pssoundboard.ui.components.SpewButton
+import com.jms.pssoundboard.ui.components.StatusCard
+import com.jms.pssoundboard.ui.components.blobColourFor
+import com.jms.pssoundboard.ui.components.blobShapeFor
+import com.jms.pssoundboard.ui.theme.BricolageCondensed
+import com.jms.pssoundboard.ui.theme.InkLight
+import com.jms.pssoundboard.ui.theme.InkMuted
+import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PlayfulIcons
+import com.jms.pssoundboard.ui.theme.SpewYellow
+import com.jms.pssoundboard.ui.theme.StopRed
+import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.gummy
+import com.jms.pssoundboard.ui.theme.inkOn
+
+/** Pin star colour; matches the mockup's small yellow star. */
+private val PinStar = Color(0xFFFFE020)
 
 @Composable
 fun SpewVaultScreen(
@@ -102,248 +108,146 @@ fun SpewVaultScreen(
 
     val totalSpews = remember(spewEntries) { spewEntries.sumOf { it.spewCount } }
 
+    fun selectedList() = sortedEntries.filter { it.id in selectedEntryIds }
+    fun copySelected() {
+        val list = selectedList()
+        val text = list.joinToString("\n") { "${it.title}: ${it.sourceUrl ?: it.localFilePath ?: "Deck clip"}" }
+        onCopyToClipboard(plural(list.size, "saved clip", "saved clips"), text)
+    }
+    fun toggleSelected(id: String) {
+        selectedEntryIds = if (id in selectedEntryIds) selectedEntryIds - id else selectedEntryIds + id
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Top Header Card with Stats
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = SlateSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, SlateOutline),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "MASTER CLIP VAULT & SPEW DIRECTORY",
-                        color = TealBright,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 13.sp,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = "${spewEntries.size} clips remembered • $totalSpews total party spews",
-                        color = SlateTextMuted,
-                        fontSize = 11.sp
-                    )
-                }
-
+        PlayfulHeader(
+            eyebrow = "${plural(totalSpews, "spew", "spews")} from ${plural(spewEntries.size, "clip", "clips")}",
+            title = "Spew Vault",
+            trailing = {
                 if (spewEntries.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = onClearAll,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PanicRed),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PanicRed.copy(alpha = 0.5f)),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    Box(
+                        modifier = Modifier
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(22.dp))
+                            .clickable(role = Role.Button, onClick = onClearAll)
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Clear All", fontSize = 10.sp)
+                        Text("Clear all", color = StopRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
-        }
-
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search remembered clips…", color = SlateTextMuted) },
-            singleLine = true,
-            trailingIcon = {
-                if (searchQuery.isNotBlank()) {
-                    Text(
-                        text = "✕",
-                        color = SlateTextMuted,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable { searchQuery = "" }
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = SlateText,
-                unfocusedTextColor = SlateText,
-                focusedBorderColor = Teal,
-                unfocusedBorderColor = SlateOutline,
-                focusedContainerColor = SlateSurface,
-                unfocusedContainerColor = SlateSurface
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
         )
 
-        // Sort Order Chips
+        // Sort chips
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(VaultSortOrder.values()) { order ->
-                val isSelected = order == sortOrder
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) Teal else SlateSurface)
-                        .border(
-                            1.dp,
-                            if (isSelected) Color.White.copy(alpha = 0.8f) else SlateOutline,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { sortOrder = order }
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = order.label,
-                        color = if (isSelected) Color.White else SlateText,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+                BlobChip(
+                    text = order.plainLabel(),
+                    selected = order == sortOrder,
+                    onClick = { sortOrder = order },
+                    modifier = Modifier.height(44.dp)
+                )
             }
         }
 
-        // Batch Selection Bar with 3-Dot Options
+        PlayfulField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = "Search the vault",
+            leadingIcon = PlayfulIcons.Library,
+            trailing = {
+                if (searchQuery.isNotBlank()) {
+                    IconBlobButton(
+                        icon = PlayfulIcons.Close,
+                        contentDescription = "Clear search",
+                        onClick = { searchQuery = "" }
+                    )
+                }
+            }
+        )
+
+        // Batch bar for selected entries
         AnimatedVisibility(
             visible = selectedEntryIds.isNotEmpty(),
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Surface(
-                color = SlateSurfaceHigh,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Teal),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 22.dp, bottomEnd = 24.dp, bottomStart = 20.dp))
+                    .background(Surface2)
+                    .padding(start = 16.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "✓ ${selectedEntryIds.size} Selected",
-                        color = TealBright,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                Text(
+                    text = "${selectedEntryIds.size} selected",
+                    color = InkLight,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                IconBlobButton(
+                    icon = PlayfulIcons.Copy,
+                    contentDescription = "Copy links for selected clips",
+                    onClick = { copySelected() }
+                )
+                IconBlobButton(
+                    icon = PlayfulIcons.Download,
+                    contentDescription = "Save selected clips to Downloads",
+                    onClick = { onSaveMultipleToDownloads(selectedList()) },
+                    colour = SpewYellow
+                )
+
+                var batchMenuExpanded by remember { mutableStateOf(false) }
+                Box {
+                    IconBlobButton(
+                        icon = PlayfulIcons.More,
+                        contentDescription = "More options for selected clips",
+                        onClick = { batchMenuExpanded = true }
                     )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    DropdownMenu(
+                        expanded = batchMenuExpanded,
+                        onDismissRequest = { batchMenuExpanded = false },
+                        modifier = Modifier.background(Surface2)
                     ) {
-                        // Quick Copy button
-                        Button(
-                            onClick = {
-                                val selectedList = sortedEntries.filter { it.id in selectedEntryIds }
-                                val text = selectedList.joinToString("\n") {
-                                    "${it.title}: ${it.sourceUrl ?: it.localFilePath ?: "Deck Clip"}"
-                                }
-                                onCopyToClipboard("${selectedList.size} Saved Clips", text)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateSurface),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, SlateOutline),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text("📋 Copy", fontSize = 11.sp, color = Color.White)
+                        VaultMenuItem("Copy all links", PlayfulIcons.Copy) {
+                            batchMenuExpanded = false
+                            copySelected()
                         }
-
-                        // Quick Save to Downloads button
-                        Button(
-                            onClick = {
-                                val selectedList = sortedEntries.filter { it.id in selectedEntryIds }
-                                onSaveMultipleToDownloads(selectedList)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text("💾 Save All", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        VaultMenuItem("Save selected to Downloads", PlayfulIcons.Download) {
+                            batchMenuExpanded = false
+                            onSaveMultipleToDownloads(selectedList())
                         }
-
-                        // 3-dot Option Menu for Selected Vault Entries
-                        var batchMenuExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(SlateSurface)
-                                    .border(1.dp, Teal, RoundedCornerShape(8.dp))
-                                    .clickable { batchMenuExpanded = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("⋮", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            DropdownMenu(
-                                expanded = batchMenuExpanded,
-                                onDismissRequest = { batchMenuExpanded = false },
-                                modifier = Modifier.background(SlateSurfaceHigh)
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("📋 Copy All Links to Clipboard", color = Color.White, fontSize = 12.sp) },
-                                    onClick = {
-                                        batchMenuExpanded = false
-                                        val selectedList = sortedEntries.filter { it.id in selectedEntryIds }
-                                        val text = selectedList.joinToString("\n") {
-                                            "${it.title}: ${it.sourceUrl ?: it.localFilePath ?: "Deck Clip"}"
-                                        }
-                                        onCopyToClipboard("${selectedList.size} Saved Clips", text)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("💾 Save Selected to Downloads", color = Color.White, fontSize = 12.sp) },
-                                    onClick = {
-                                        batchMenuExpanded = false
-                                        val selectedList = sortedEntries.filter { it.id in selectedEntryIds }
-                                        onSaveMultipleToDownloads(selectedList)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("🗑️ Delete Selected from Vault", color = PanicRed, fontSize = 12.sp) },
-                                    onClick = {
-                                        batchMenuExpanded = false
-                                        onDeleteEntries(selectedEntryIds)
-                                        selectedEntryIds = emptySet()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("✕ Deselect All", color = SlateTextMuted, fontSize = 12.sp) },
-                                    onClick = {
-                                        batchMenuExpanded = false
-                                        selectedEntryIds = emptySet()
-                                    }
-                                )
-                            }
+                        VaultMenuItem("Delete selected", PlayfulIcons.Trash, colour = StopRed) {
+                            batchMenuExpanded = false
+                            onDeleteEntries(selectedEntryIds)
+                            selectedEntryIds = emptySet()
                         }
-
-                        // Clear selection button
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(SlateSurface)
-                                .clickable { selectedEntryIds = emptySet() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("✕", color = SlateTextMuted, fontSize = 12.sp)
+                        VaultMenuItem("Deselect all", PlayfulIcons.Close, colour = InkMuted) {
+                            batchMenuExpanded = false
+                            selectedEntryIds = emptySet()
                         }
                     }
                 }
+                IconBlobButton(
+                    icon = PlayfulIcons.Close,
+                    contentDescription = "Clear selection",
+                    onClick = { selectedEntryIds = emptySet() }
+                )
             }
         }
 
-        // Empty state
         if (spewEntries.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -351,276 +255,233 @@ fun SpewVaultScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Text(
-                        text = "📂 Spew Vault is Empty",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "Every time you fire a sound from your Live Deck, or tap \"⚡ Spew\" in the Sound Library, it is automatically cataloged in this directory with play counts and timestamps so you can spam it again anytime!",
-                        color = SlateTextMuted,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-        } else {
-            // Remembered Directory List
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(sortedEntries, key = { it.id }) { entry ->
-                    val isSelected = selectedEntryIds.contains(entry.id)
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) SlateSurfaceHigh else SlateSurface)
-                            .border(
-                                1.5.dp,
-                                when {
-                                    isSelected -> TealBright
-                                    entry.isPinned -> Teal
-                                    else -> SlateOutline
-                                },
-                                RoundedCornerShape(12.dp)
-                            )
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Selection Checkbox / Circle
+                StatusCard(
+                    title = "Nothing spewed yet",
+                    body = "Every sound you play from the Deck or the Library lands here, so you can spew it again.",
+                    art = {
                         Box(
                             modifier = Modifier
-                                .size(22.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) Teal else SlateSurfaceHigh)
-                                .border(1.5.dp, if (isSelected) TealBright else SlateOutline, CircleShape)
-                                .clickable {
-                                    selectedEntryIds = if (isSelected) selectedEntryIds - entry.id else selectedEntryIds + entry.id
-                                },
+                                .size(52.dp)
+                                .gummy(SpewYellow, PadShape.entries.first().shape),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (isSelected) {
-                                Text("✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        // Pin Button
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(if (entry.isPinned) Teal.copy(alpha = 0.3f) else SlateSurfaceHigh)
-                                .clickable { onTogglePin(entry.id) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (entry.isPinned) "★" else "☆",
-                                color = if (entry.isPinned) WarningAmber else SlateTextMuted,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                            Icon(
+                                imageVector = PlayfulIcons.Vault,
+                                contentDescription = null,
+                                tint = inkOn(SpewYellow),
+                                modifier = Modifier.size(24.dp)
                             )
-                        }
-
-                        // Title, Category, Count Badge & Timestamp
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = entry.title,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (entry.spewCount > 5) PanicRed.copy(alpha = 0.25f) else Teal.copy(alpha = 0.25f))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = "${entry.spewCount}x",
-                                        color = if (entry.spewCount > 5) PanicRed else TealBright,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 10.sp
-                                    )
-                                }
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                Text(
-                                    text = entry.category,
-                                    color = SlateTextMuted,
-                                    fontSize = 10.sp
-                                )
-                                Text("•", color = SlateTextMuted, fontSize = 10.sp)
-                                Text(
-                                    text = entry.formattedLastSpewed(),
-                                    color = SlateTextMuted.copy(alpha = 0.8f),
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
-
-                        // Action Controls: ⚡ SPEW + ➕ EQUIP + ⋮ 3-Dot Options Menu
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Button(
-                                onClick = { onSpewEntry(entry) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Teal),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "⚡ SPEW",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(SlateSurfaceHigh)
-                                    .clickable {
-                                        val item = LibraryItem(
-                                            id = entry.id,
-                                            title = entry.title,
-                                            category = entry.category,
-                                            url = entry.sourceUrl,
-                                            localUri = entry.localFilePath
-                                        )
-                                        onEquipItem(item)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("➕", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                            }
-
-                            // 3-dot Option Button for this vault clip
-                            var itemMenuExpanded by remember { mutableStateOf(false) }
-                            Box {
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(SlateSurfaceHigh)
-                                        .border(1.dp, SlateOutline, RoundedCornerShape(8.dp))
-                                        .clickable { itemMenuExpanded = true },
-                                contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "⋮",
-                                        color = Color.White,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = itemMenuExpanded,
-                                    onDismissRequest = { itemMenuExpanded = false },
-                                    modifier = Modifier.background(SlateSurfaceHigh)
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("📋 Copy Sound Link", color = Color.White, fontSize = 12.sp) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            val link = entry.sourceUrl ?: entry.localFilePath ?: entry.title
-                                            onCopyToClipboard(entry.title, link)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("💾 Save to Device (Downloads)", color = Color.White, fontSize = 12.sp) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            onSaveToDownloads(entry)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("⚡ Spew into Party", color = TealBright, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            onSpewEntry(entry)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("➕ Equip to Soundboard", color = Color.White, fontSize = 12.sp) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            val item = LibraryItem(
-                                                id = entry.id,
-                                                title = entry.title,
-                                                category = entry.category,
-                                                url = entry.sourceUrl,
-                                                localUri = entry.localFilePath
-                                            )
-                                            onEquipItem(item)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(if (entry.isPinned) "☆ Unpin Clip" else "★ Pin Clip", color = WarningAmber, fontSize = 12.sp) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            onTogglePin(entry.id)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("🗑️ Delete from Vault", color = PanicRed, fontSize = 12.sp) },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            onDeleteEntries(setOf(entry.id))
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = if (isSelected) "✓ Deselect Clip" else "☑️ Select Clip",
-                                                color = SlateTextMuted,
-                                                fontSize = 12.sp
-                                            )
-                                        },
-                                        onClick = {
-                                            itemMenuExpanded = false
-                                            selectedEntryIds = if (isSelected) selectedEntryIds - entry.id else selectedEntryIds + entry.id
-                                        }
-                                    )
-                                }
-                            }
                         }
                     }
+                )
+            }
+        } else if (sortedEntries.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Text(
+                    text = "No clips match “$searchQuery”",
+                    color = InkMuted,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 12.dp)
+            ) {
+                items(sortedEntries, key = { it.id }) { entry ->
+                    VaultRow(
+                        entry = entry,
+                        isSelected = entry.id in selectedEntryIds,
+                        onToggleSelected = { toggleSelected(entry.id) },
+                        onSpewEntry = onSpewEntry,
+                        onEquipItem = onEquipItem,
+                        onTogglePin = onTogglePin,
+                        onDeleteEntries = onDeleteEntries,
+                        onSaveToDownloads = onSaveToDownloads,
+                        onCopyToClipboard = onCopyToClipboard
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun VaultRow(
+    entry: SpewEntry,
+    isSelected: Boolean,
+    onToggleSelected: () -> Unit,
+    onSpewEntry: (SpewEntry) -> Unit,
+    onEquipItem: (LibraryItem) -> Unit,
+    onTogglePin: (String) -> Unit,
+    onDeleteEntries: (Set<String>) -> Unit,
+    onSaveToDownloads: (SpewEntry) -> Unit,
+    onCopyToClipboard: (String, String) -> Unit,
+) {
+    val blobColour = blobColourFor(entry.id)
+    val ink = inkOn(blobColour)
+    val equip = {
+        onEquipItem(
+            LibraryItem(
+                id = entry.id,
+                title = entry.title,
+                category = entry.category,
+                url = entry.sourceUrl,
+                localUri = entry.localFilePath
+            )
+        )
+    }
+
+    CapsuleRow(selected = isSelected) {
+        // Count blob doubles as the selection toggle; shows a check when selected.
+        val timesSpewed = "Spewed ${plural(entry.spewCount, "time", "times")}"
+        Box(
+            modifier = Modifier
+                .size(width = 52.dp, height = 48.dp)
+                .gummy(blobColour, blobShapeFor(entry.id))
+                .clickable(
+                    role = Role.Checkbox,
+                    onClickLabel = if (isSelected) "Deselect ${entry.title}" else "Select ${entry.title}",
+                    onClick = onToggleSelected
+                )
+                .semantics {
+                    contentDescription = if (isSelected) "$timesSpewed, selected" else timesSpewed
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = PlayfulIcons.Check,
+                    contentDescription = null,
+                    tint = ink,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = "×${entry.spewCount}",
+                    color = ink,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 17.sp,
+                    maxLines = 1
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (entry.isPinned) {
+                    Icon(
+                        imageVector = PlayfulIcons.Star,
+                        contentDescription = "Pinned",
+                        tint = PinStar,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Text(
+                    text = entry.title,
+                    color = InkLight,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = "${entry.category} · ${entry.formattedLastSpewed().replaceFirstChar { it.lowercase() }}",
+                color = InkMuted,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        SpewButton(
+            onClick = { onSpewEntry(entry) },
+            contentDescription = "Spew ${entry.title} again"
+        )
+
+        var itemMenuExpanded by remember { mutableStateOf(false) }
+        Box {
+            IconBlobButton(
+                icon = PlayfulIcons.More,
+                contentDescription = "More options for ${entry.title}",
+                onClick = { itemMenuExpanded = true }
+            )
+            DropdownMenu(
+                expanded = itemMenuExpanded,
+                onDismissRequest = { itemMenuExpanded = false },
+                modifier = Modifier.background(Surface2)
+            ) {
+                VaultMenuItem("Copy sound link", PlayfulIcons.Copy) {
+                    itemMenuExpanded = false
+                    val link = entry.sourceUrl ?: entry.localFilePath ?: entry.title
+                    onCopyToClipboard(entry.title, link)
+                }
+                VaultMenuItem("Save to device", PlayfulIcons.Download) {
+                    itemMenuExpanded = false
+                    onSaveToDownloads(entry)
+                }
+                VaultMenuItem("Spew into party", PlayfulIcons.Play, colour = SpewYellow) {
+                    itemMenuExpanded = false
+                    onSpewEntry(entry)
+                }
+                VaultMenuItem("Equip to a pad", PlayfulIcons.Plus) {
+                    itemMenuExpanded = false
+                    equip()
+                }
+                VaultMenuItem(if (entry.isPinned) "Unpin" else "Pin", PlayfulIcons.Star) {
+                    itemMenuExpanded = false
+                    onTogglePin(entry.id)
+                }
+                VaultMenuItem(if (isSelected) "Deselect" else "Select", PlayfulIcons.Check) {
+                    itemMenuExpanded = false
+                    onToggleSelected()
+                }
+                VaultMenuItem("Delete from vault", PlayfulIcons.Trash, colour = StopRed) {
+                    itemMenuExpanded = false
+                    onDeleteEntries(setOf(entry.id))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VaultMenuItem(
+    text: String,
+    icon: ImageVector,
+    colour: Color = InkLight,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(text, color = colour, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = colour, modifier = Modifier.size(18.dp)) },
+        onClick = onClick
+    )
+}
+
+/** "1 spew", "3 spews". */
+private fun plural(count: Int, one: String, many: String): String = "$count ${if (count == 1) one else many}"
+
+/** Plain sort labels for the chips. */
+private fun VaultSortOrder.plainLabel(): String = when (this) {
+    VaultSortOrder.MOST_SPEWED -> "Most spewed"
+    VaultSortOrder.RECENT -> "Recent"
+    VaultSortOrder.PINNED_FIRST -> "Pinned"
+    VaultSortOrder.ALPHABETICAL -> "A–Z"
 }
