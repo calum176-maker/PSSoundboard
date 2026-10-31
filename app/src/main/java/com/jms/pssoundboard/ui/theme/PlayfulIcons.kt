@@ -67,4 +67,5 @@ object PlayfulIcons {
     val Folder = icon("folder", stroked = listOf("M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"))
     val Link = icon("link", stroked = listOf("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1", "M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
     val ChevronDown = icon("chevron_down", stroked = listOf("M6 9l6 6 6-6"))
+    val Feedback = icon("feedback", stroked = listOf("M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z", "M9 10h6"))
 }

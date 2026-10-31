@@ -1,5 +1,14 @@
 package com.jms.pssoundboard
 
+import java.time.LocalDate
+import androidx.activity.compose.rememberLauncherForActivityResult
+import com.jms.pssoundboard.ui.dialogs.FeedbackScreens
+import com.jms.pssoundboard.ui.dialogs.FeedbackDialog
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
@@ -210,7 +219,16 @@ fun MainScreen(
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
-    var currentTab by remember { mutableIntStateOf(0) }
+    var currentTab by rememberSaveable { mutableIntStateOf(0) }
+    var showFeedback by rememberSaveable { mutableStateOf(false) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri -> uri?.let { viewModel.exportDecks(it) } }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { viewModel.importDecks(it) } }
+    val context = LocalContext.current
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -241,22 +259,41 @@ fun MainScreen(
         containerColor = SlateBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopStatusBar(
-                loopbackConnected = loopbackConnected,
-                onLaunchOverlay = onLaunchOverlay
-            )
+            if (!landscape) {
+                TopStatusBar(
+                    loopbackConnected = loopbackConnected,
+                    onLaunchOverlay = onLaunchOverlay,
+                    onFeedback = { showFeedback = true }
+                )
+            }
         },
         bottomBar = {
-            BottomNavBar(
-                currentTab = currentTab,
-                onSelectTab = { currentTab = it }
-            )
+            if (!landscape) {
+                BottomNavBar(
+                    currentTab = currentTab,
+                    onSelectTab = { currentTab = it }
+                )
+            }
         }
     ) { innerPadding ->
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+        ) {
+        if (landscape) {
+            SideNavRail(
+                currentTab = currentTab,
+                onSelectTab = { currentTab = it },
+                loopbackConnected = loopbackConnected,
+                onLaunchOverlay = onLaunchOverlay,
+                onFeedback = { showFeedback = true }
+            )
+        }
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         ) {
             if (!isReady) {
                 Box(
@@ -341,13 +378,16 @@ fun MainScreen(
                         headsetMicDetected = headsetMicDetected,
                         outputDeviceName = outputDeviceName,
                         isTestTonePlaying = isTestTonePlaying,
-                        onToggleTestTone = { viewModel.toggleTestTone() }
+                        onToggleTestTone = { viewModel.toggleTestTone() },
+                        onSendFeedback = { showFeedback = true },
+                        onExportDecks = { exportLauncher.launch("pssoundboard-backup-${LocalDate.now()}.zip") },
+                        onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }
                     )
                 }
             }
 
             // Busy Overlay Indicator
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = busyMessage != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -375,6 +415,26 @@ fun MainScreen(
                 }
             }
         }
+        }
+    }
+
+    if (showFeedback) {
+        FeedbackDialog(
+            initialScreen = FeedbackScreens.getOrElse(currentTab) { "Somewhere else" },
+            configured = viewModel.feedbackConfigured,
+            onSend = { category, screen, message, includeDetails ->
+                showFeedback = false
+                viewModel.sendFeedback(category, screen, message, includeDetails) { report ->
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "PSSoundboard feedback")
+                        putExtra(Intent.EXTRA_TEXT, report)
+                    }
+                    context.startActivity(Intent.createChooser(send, "Share feedback"))
+                }
+            },
+            onDismiss = { showFeedback = false }
+        )
     }
 
     // Pad Editor Dialog
@@ -434,8 +494,8 @@ fun MainScreen(
 private fun TopStatusBar(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
+    onFeedback: () -> Unit,
 ) {
-    val overlayRunning by FloatingOverlayService.running.collectAsState()
     val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
     Row(
         modifier = Modifier
@@ -468,31 +528,22 @@ private fun TopStatusBar(
             )
         }
 
-        val miniDeckShape = PadShape.CLOUD.shape
-        Box(
-            modifier = Modifier
-                .size(width = 52.dp, height = 48.dp)
-                .then(
-                    if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
-                    else Modifier.clip(miniDeckShape).background(Surface2)
-                )
-                .clickable(
-                    onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
-                    role = Role.Button,
-                    onClick = onLaunchOverlay
-                )
-                .semantics {
-                    contentDescription = if (overlayRunning) "Mini-deck, on" else "Mini-deck, off"
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PlayfulIcons.MiniDeck,
-                contentDescription = null,
-                tint = if (overlayRunning) InkOnBlob else InkLight,
-                modifier = Modifier.size(22.dp)
-            )
-        }
+        FeedbackButton(onFeedback = onFeedback)
+        MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
+    }
+}
+
+@Composable
+private fun FeedbackButton(onFeedback: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(ChipBlob)
+            .clickable(onClickLabel = "Send feedback to the team", role = Role.Button, onClick = onFeedback)
+            .semantics { contentDescription = "Send feedback" },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkMuted, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -501,13 +552,6 @@ private fun BottomNavBar(
     currentTab: Int,
     onSelectTab: (Int) -> Unit,
 ) {
-    val tabs = listOf(
-        "Deck" to PlayfulIcons.Deck,
-        "Vault" to PlayfulIcons.Vault,
-        "Library" to PlayfulIcons.Library,
-        "Voice" to PlayfulIcons.Voice,
-        "Setup" to PlayfulIcons.Setup,
-    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -516,7 +560,7 @@ private fun BottomNavBar(
             .padding(horizontal = 6.dp, vertical = 4.dp)
             .selectableGroup()
     ) {
-        tabs.forEachIndexed { index, (label, icon) ->
+        NavTabs.forEachIndexed { index, (label, icon) ->
             val selected = currentTab == index
             Column(
                 modifier = Modifier
@@ -548,5 +592,106 @@ private fun BottomNavBar(
                 )
             }
         }
+    }
+}
+
+private val NavTabs = listOf(
+    "Deck" to PlayfulIcons.Deck,
+    "Vault" to PlayfulIcons.Vault,
+    "Library" to PlayfulIcons.Library,
+    "Voice" to PlayfulIcons.Voice,
+    "Setup" to PlayfulIcons.Setup,
+)
+
+@Composable
+private fun MiniDeckButton(onLaunchOverlay: () -> Unit) {
+    val overlayRunning by FloatingOverlayService.running.collectAsState()
+    val miniDeckShape = PadShape.CLOUD.shape
+    Box(
+        modifier = Modifier
+            .size(width = 52.dp, height = 48.dp)
+            .then(
+                if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
+                else Modifier.clip(miniDeckShape).background(Surface2)
+            )
+            .clickable(
+                onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
+                role = Role.Button,
+                onClick = onLaunchOverlay
+            )
+            .semantics {
+                contentDescription = if (overlayRunning) "Mini-deck, on" else "Mini-deck, off"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = PlayfulIcons.MiniDeck,
+            contentDescription = null,
+            tint = if (overlayRunning) InkOnBlob else InkLight,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+/** Landscape navigation: the bottom bar's tabs stacked down the left, with status and mini-deck below. */
+@Composable
+private fun SideNavRail(
+    currentTab: Int,
+    onSelectTab: (Int) -> Unit,
+    loopbackConnected: Boolean,
+    onLaunchOverlay: () -> Unit,
+    onFeedback: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(84.dp)
+            .fillMaxHeight()
+            .background(Ground)
+            .padding(vertical = 6.dp)
+            .selectableGroup(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        NavTabs.forEachIndexed { index, (label, icon) ->
+            val selected = currentTab == index
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelectTab(index) })
+                    .padding(vertical = 1.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 48.dp, height = 26.dp)
+                        .then(if (selected) Modifier.gummy(SpewYellow, ChipBlob) else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = if (selected) InkOnBlob else InkMuted, modifier = Modifier.size(20.dp))
+                }
+                Text(
+                    text = label,
+                    color = if (selected) InkLight else InkMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+        }
+        Spacer(modifier = Modifier.weight(1f))
+        FeedbackButton(onFeedback = onFeedback)
+        val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
+        Box(
+            modifier = Modifier
+                .size(width = 12.dp, height = 11.dp)
+                .clip(ChipBlob)
+                .background(statusColour)
+                .semantics {
+                    contentDescription = if (loopbackConnected) "Loopback cable in" else "Speaker mode, no loopback cable"
+                }
+        )
+        MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
     }
 }

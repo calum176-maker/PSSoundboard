@@ -68,6 +68,17 @@ class SoundRepository(
     fun builtinPath(clipId: String): String =
         SynthTestClipsGenerator.fileFor(context, clipId).absolutePath
 
+    /** Folder holding the synthesised built-in clips (regenerated on every install, so not backed up). */
+    val builtinDirPath: String
+        get() = SynthTestClipsGenerator.fileFor(context, SynthTestClipsGenerator.TEST_TONE_ID).parentFile!!.absolutePath
+
+    /** Current decks as JSON, for backups. */
+    fun exportStateJson(): String = gson.toJson(_state.value)
+
+    /** Parses a backed-up deck state; null if it is not usable. */
+    fun parseStateJson(text: String): DeckState? =
+        runCatching { gson.fromJson(text, DeckState::class.java)?.sanitized() }.getOrNull()
+
     // ---- Lifecycle --------------------------------------------------------------------------
 
     suspend fun initialize() = withContext(Dispatchers.IO) {

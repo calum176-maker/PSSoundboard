@@ -1,6 +1,5 @@
 package com.jms.pssoundboard.service
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,39 +16,45 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
@@ -66,19 +71,46 @@ import com.jms.pssoundboard.audio.SoundboardEngine
 import com.jms.pssoundboard.data.SoundRepository
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
-import com.jms.pssoundboard.ui.theme.PanicRed
+import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.theme.BricolageCondensed
+import com.jms.pssoundboard.ui.theme.ChipBlob
+import com.jms.pssoundboard.ui.theme.Ground
+import com.jms.pssoundboard.ui.theme.InkLight
+import com.jms.pssoundboard.ui.theme.InkMuted
+import com.jms.pssoundboard.ui.theme.InkOnBlob
 import com.jms.pssoundboard.ui.theme.PSSoundboardTheme
-import com.jms.pssoundboard.ui.theme.SlateBackground
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateSurface
-import com.jms.pssoundboard.ui.theme.SlateText
-import com.jms.pssoundboard.ui.theme.SlateTextMuted
-import com.jms.pssoundboard.ui.theme.Teal
-import com.jms.pssoundboard.ui.theme.toComposeColor
+import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PlayfulIcons
+import com.jms.pssoundboard.ui.theme.SpewYellow
+import com.jms.pssoundboard.ui.theme.StopRed
+import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.gummy
+import com.jms.pssoundboard.ui.theme.inkOn
+import com.jms.pssoundboard.ui.theme.padColour
+import com.jms.pssoundboard.ui.theme.spewPulse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
+
+/** Where one blob sits in the loose mini-deck cluster (dp, relative to the cluster). */
+private data class BlobSpot(val x: Dp, val y: Dp, val width: Dp, val height: Dp)
+
+/** Staggered two-column cluster, 220 dp wide: slight vertical offsets and varied blob sizes. */
+private val PadSpots = listOf(
+    BlobSpot(0.dp, 58.dp, 104.dp, 88.dp),
+    BlobSpot(116.dp, 56.dp, 104.dp, 80.dp),
+    BlobSpot(4.dp, 158.dp, 96.dp, 80.dp),
+    BlobSpot(112.dp, 148.dp, 104.dp, 84.dp),
+    BlobSpot(6.dp, 250.dp, 96.dp, 78.dp),
+    BlobSpot(114.dp, 244.dp, 100.dp, 80.dp),
+)
+private val ClusterWidth = 220.dp
+private val ClusterHeight = 396.dp
+
+/** Room around the cluster for the playing pulse rings, which draw outside each blob. */
+private val ClusterMargin = 10.dp
+
 
 /**
  * Foreground service that renders a collapsible, draggable floating Mini-Deck
@@ -372,41 +404,38 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         super.onDestroy()
     }
 
+
     // -----------------------------------------------------------------------------------------
     // Composables for Floating Overlay
     // -----------------------------------------------------------------------------------------
 
+    /** Collapsed state: one yellow gummy bubble. Drag to move, tap to open. */
     @Composable
     private fun CollapsedBubble(onClick: () -> Unit) {
+        val currentOnClick by rememberUpdatedState(onClick)
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(Teal.copy(alpha = 0.92f))
-                .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape)
+                .size(width = 60.dp, height = 56.dp)
+                .gummy(SpewYellow, PadShape.PEBBLE.shape)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Mini-deck. Drag to move, tap to open"
+                    onClick(label = "Open the mini-deck") {
+                        currentOnClick()
+                        true
+                    }
+                }
                 .overlayDragHandle(onTap = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "PS",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "DECK",
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp
-                )
-            }
+            Icon(PlayfulIcons.MiniDeck, contentDescription = null, tint = InkOnBlob, modifier = Modifier.size(24.dp))
         }
     }
 
+    /**
+     * Expanded state: a loose cluster of gummy pads with a dark grip blob on top (drag to move,
+     * tap to tuck away) and a red Stop blob underneath.
+     */
     @Composable
     private fun ExpandedMiniDeck(
         onCollapse: () -> Unit,
@@ -415,177 +444,194 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         onPadRelease: (PadRef, Pad) -> Unit,
     ) {
         val deckState by repository.state.collectAsState()
+        val playingPads by engine.playingPads.collectAsState()
         val miniPads = remember(deckState) { deckState.miniDeckPads() }
+        val currentOnCollapse by rememberUpdatedState(onCollapse)
 
-        Column(
+        Box(
             modifier = Modifier
-                .width(280.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(SlateBackground.copy(alpha = 0.96f))
-                .border(1.5.dp, Teal.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
-                .padding(10.dp)
+                .padding(ClusterMargin)
+                .size(ClusterWidth, ClusterHeight)
         ) {
-            // Header: Title + Drag Hint + Collapse Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Grip: the drag handle for the expanded deck.
+            Box(
+                modifier = Modifier
+                    .offset(x = 80.dp, y = 0.dp)
+                    .size(width = 60.dp, height = 48.dp)
+                    .gummy(Ground, ChipBlob)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "Mini-deck grip. Drag to move, tap to tuck away"
+                        onClick(label = "Tuck away") {
+                            currentOnCollapse()
+                            true
+                        }
+                    }
+                    .overlayDragHandle(onTap = onCollapse),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .overlayDragHandle(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(Teal)
-                    )
-                    Text(
-                        text = " MINI DECK (PS APP)",
-                        color = SlateText,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
-                    )
-                }
+                GripDots()
+            }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = onStopAll,
-                        colors = ButtonDefaults.buttonColors(containerColor = PanicRed),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        modifier = Modifier.padding(end = 6.dp)
-                    ) {
-                        Text("STOP", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(SlateSurface)
-                            .border(1.dp, SlateOutline, CircleShape)
-                            .pointerInput(Unit) {
-                                detectTapGestures(onTap = { onCollapse() })
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "✕",
-                            color = SlateTextMuted,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+            PadSpots.forEachIndexed { index, spot ->
+                val entry = miniPads.getOrNull(index)
+                val spotModifier = Modifier
+                    .offset(x = spot.x, y = spot.y)
+                    .size(spot.width, spot.height)
+                if (entry != null) {
+                    val (ref, pad) = entry
+                    MiniPad(
+                        ref = ref,
+                        pad = pad,
+                        isPlaying = ref.key in playingPads,
+                        onPress = onPadPress,
+                        onRelease = onPadRelease,
+                        modifier = spotModifier
+                    )
+                } else {
+                    EmptyMiniPad(index, spotModifier)
                 }
             }
 
-            Text(
-                text = "Hold & drag top bar to reposition over PS App",
-                color = SlateTextMuted,
-                fontSize = 10.sp,
+            StopBlob(
+                onStopAll = onStopAll,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .overlayDragHandle()
-                    .padding(top = 2.dp, bottom = 8.dp)
+                    .align(Alignment.BottomCenter)
+                    .size(width = 112.dp, height = 56.dp)
             )
+        }
+    }
 
-            // 3 x 2 grid of favorite / active pads
-            val row1 = miniPads.take(3)
-            val row2 = miniPads.drop(3).take(3)
-
-            MiniPadRow(row1, onPadPress, onPadRelease)
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(6.dp))
-            MiniPadRow(row2, onPadPress, onPadRelease)
+    /** Six small dots, the usual sign for something you can grab and drag. */
+    @Composable
+    private fun GripDots() {
+        Canvas(modifier = Modifier.size(width = 22.dp, height = 12.dp)) {
+            val radius = 1.8.dp.toPx()
+            val xs = listOf(radius, size.width / 2f, size.width - radius)
+            val ys = listOf(size.height * 0.22f, size.height * 0.78f)
+            for (x in xs) for (y in ys) drawCircle(InkLight, radius, Offset(x, y))
         }
     }
 
     @Composable
-    private fun MiniPadRow(
-        pads: List<Pair<PadRef, Pad>>,
-        onPadPress: (PadRef, Pad) -> Unit,
-        onPadRelease: (PadRef, Pad) -> Unit,
+    private fun MiniPad(
+        ref: PadRef,
+        pad: Pad,
+        isPlaying: Boolean,
+        onPress: (PadRef, Pad) -> Unit,
+        onRelease: (PadRef, Pad) -> Unit,
+        modifier: Modifier = Modifier,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            for (i in 0 until 3) {
-                val pair = pads.getOrNull(i)
-                if (pair != null) {
-                    val (ref, pad) = pair
-                    var isPressed by remember { mutableStateOf(false) }
-                    val padColor = pad.colorHex.toComposeColor(Teal)
+        var isPressed by remember(ref.key) { mutableStateOf(false) }
+        val pressScale by animateFloatAsState(
+            targetValue = if (isPressed) 0.92f else 1f,
+            animationSpec = spring(dampingRatio = 0.45f, stiffness = 700f),
+            label = "mini_pad_press_scale"
+        )
+        val currentOnPress by rememberUpdatedState(onPress)
+        val currentOnRelease by rememberUpdatedState(onRelease)
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .size(height = 54.dp, width = 0.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isPressed) padColor else padColor.copy(alpha = 0.45f))
-                            .border(
-                                1.5.dp,
-                                if (isPressed) Color.White else padColor.copy(alpha = 0.8f),
-                                RoundedCornerShape(10.dp)
-                            )
-                            .pointerInput(ref.key + pad.mode) {
-                                detectTapGestures(
-                                    onPress = {
-                                        isPressed = true
-                                        onPadPress(ref, pad)
-                                        tryAwaitRelease()
-                                        isPressed = false
-                                        onPadRelease(ref, pad)
-                                    }
-                                )
-                            }
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = pad.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 13.sp
-                            )
-                            Text(
-                                text = pad.mode.label,
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .size(height = 54.dp, width = 0.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SlateSurface.copy(alpha = 0.4f))
-                            .border(1.dp, SlateOutline.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "-",
-                            color = SlateTextMuted.copy(alpha = 0.5f),
-                            fontSize = 12.sp
-                        )
+        val shape = PadShape.of(pad.shape, pad.slot).shape
+        val colour = padColour(pad.colorHex)
+        val ink = inkOn(colour)
+        val isHold = pad.mode == PlaybackMode.HOLD_TO_PLAY
+        val description = buildString {
+            append(pad.title)
+            append(", ")
+            append(pad.mode.label.lowercase())
+            if (isPlaying) append(", spewing")
+        }
+
+        Box(
+            modifier = modifier
+                .scale(pressScale)
+                .spewPulse(isPlaying, colour, shape)
+                .gummy(colour, shape)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = description
+                    onClick(label = "Spew") {
+                        currentOnPress(ref, pad)
+                        currentOnRelease(ref, pad)
+                        true
                     }
                 }
+                .pointerInput(ref.key + pad.mode) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            currentOnPress(ref, pad)
+                            tryAwaitRelease()
+                            isPressed = false
+                            currentOnRelease(ref, pad)
+                        }
+                    )
+                }
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = pad.title,
+                    color = ink,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                if (isHold) {
+                    Text(text = "Hold", color = ink, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
+        }
+    }
+
+    /** A mini-deck slot with no sound yet: a quiet blob that does nothing when tapped. */
+    @Composable
+    private fun EmptyMiniPad(index: Int, modifier: Modifier = Modifier) {
+        val shape = PadShape.of(null, index).shape
+        Box(
+            modifier = modifier
+                .clip(shape)
+                .background(Surface2)
+                .semantics { contentDescription = "Empty mini-deck slot" },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "Empty", color = InkMuted, fontFamily = BricolageCondensed, fontSize = 14.sp)
+        }
+    }
+
+    @Composable
+    private fun StopBlob(onStopAll: () -> Unit, modifier: Modifier = Modifier) {
+        val currentOnStopAll by rememberUpdatedState(onStopAll)
+        Row(
+            modifier = modifier
+                .gummy(StopRed, PadShape.PEBBLE.shape)
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = "Stop all sounds"
+                    onClick(label = "Stop all sounds") {
+                        currentOnStopAll()
+                        true
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { currentOnStopAll() })
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        ) {
+            Icon(PlayfulIcons.Stop, contentDescription = null, tint = InkOnBlob, modifier = Modifier.size(14.dp))
+            Text(
+                text = "Stop",
+                color = InkOnBlob,
+                fontFamily = BricolageCondensed,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp
+            )
         }
     }
 }

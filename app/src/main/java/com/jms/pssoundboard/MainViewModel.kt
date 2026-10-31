@@ -15,6 +15,8 @@ import com.jms.pssoundboard.audio.SoundboardEngine
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoiceFxProcessor
 import com.jms.pssoundboard.audio.VoicePreset
+import com.jms.pssoundboard.data.BackupRepository
+import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
@@ -48,6 +50,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: SoundRepository = app.repository
     private val vaultRepository: SpewVaultRepository = app.vaultRepository
     private val recorder = ClipRecorder(application)
+    private val feedback = FeedbackRepository(application)
+    private val backups = BackupRepository(application, repository, vaultRepository)
 
     val deck: StateFlow<DeckState> = repository.state
     val ready: StateFlow<Boolean> = repository.ready
@@ -102,6 +106,90 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // Load default trending sounds on launch
         searchOnline("")
+        // Send any feedback that could not go out last time
+        viewModelScope.launch {
+            val sent = feedback.retryPending()
+            if (sent > 0) _messages.tryEmit("Sent $sent saved feedback ${if (sent == 1) "report" else "reports"}")
+        }
+    }
+
+    // ---- Backups (export / import everything) -----------------------------------------------
+
+    fun exportDecks(uri: Uri) {
+        viewModelScope.launch {
+            _busyMessage.value = "Saving your decks…"
+            runCatching { backups.export(uri) }
+                .onSuccess { s ->
+                    _messages.tryEmit("Saved ${count(s.decks, "deck")} and ${count(s.sounds, "sound")}")
+                }
+                .onFailure { _messages.tryEmit("Couldn't save the backup: ${it.message ?: it.javaClass.simpleName}") }
+            _busyMessage.value = null
+        }
+    }
+
+    /** Replaces decks and vault with a backup; the snackbar offers Undo, which puts the old ones back. */
+    fun importDecks(uri: Uri) {
+        viewModelScope.launch {
+            _busyMessage.value = "Bringing your decks back…"
+            runCatching { backups.read(uri) }
+                .onSuccess { restored ->
+                    val oldDeck = deck.value
+                    val oldVault = spewEntries.value
+                    repository.restore(restored.deck)
+                    vaultRepository.restore(restored.vault)
+                    val missing = if (restored.missing > 0) " (${count(restored.missing, "sound")} missing)" else ""
+                    _undoMessages.tryEmit(
+                        UndoableMessage("Imported ${count(restored.deck.boards.size, "deck")} and ${count(restored.sounds, "sound")}$missing") {
+                            repository.restore(oldDeck)
+                            vaultRepository.restore(oldVault)
+                            viewModelScope.launch(Dispatchers.IO) { restored.dir.deleteRecursively() }
+                        }
+                    )
+                }
+                .onFailure { _messages.tryEmit("Couldn't import: ${it.message ?: it.javaClass.simpleName}") }
+            _busyMessage.value = null
+        }
+    }
+
+    private fun count(n: Int, noun: String) = "$n ${if (n == 1) noun else noun + "s"}"
+
+    // ---- Tester feedback --------------------------------------------------------------------
+
+    val feedbackConfigured: Boolean get() = feedback.isConfigured
+
+    /**
+     * Sends feedback to the team (it becomes a GitHub issue). Builds without an endpoint hand the
+     * report to [onShare] instead, so testers can still pass it on by message or email.
+     */
+    fun sendFeedback(
+        category: String,
+        screen: String,
+        message: String,
+        includeDetails: Boolean,
+        onShare: (String) -> Unit,
+    ) {
+        val details = if (includeDetails) {
+            feedback.deviceDetails(
+                mapOf("loopback_cable" to if (loopbackConnected.value) "plugged in" else "not plugged in")
+            )
+        } else {
+            null
+        }
+        val report = feedback.buildReport(category, screen, message, details)
+        if (!feedback.isConfigured) {
+            onShare(feedback.reportAsText(report))
+            return
+        }
+        viewModelScope.launch {
+            val outcome = feedback.send(report)
+            _messages.tryEmit(
+                when {
+                    outcome.sent && outcome.issueNumber != null -> "Thanks! Sent to the team as issue #${outcome.issueNumber}"
+                    outcome.sent -> "Thanks! Feedback sent to the team"
+                    else -> "Couldn't send right now. It's saved and will go next time you open the app."
+                }
+            )
+        }
     }
 
     // ---- Live deck & Spew logging -----------------------------------------------------------
