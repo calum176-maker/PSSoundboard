@@ -88,6 +88,7 @@ fun CloudLibraryScreen(
     hasMoreResults: Boolean,
     totalOnlineCount: Int,
     searchFailed: Boolean,
+    loadMoreFailed: Boolean,
     previewingId: String?,
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
@@ -126,8 +127,8 @@ fun CloudLibraryScreen(
         }
     }
 
-    LaunchedEffect(shouldLoadMore, hasMoreResults, isLoadingMore, isSearchingOnline) {
-        if (shouldLoadMore && hasMoreResults && !isLoadingMore && !isSearchingOnline) {
+    LaunchedEffect(shouldLoadMore, hasMoreResults, isLoadingMore, isSearchingOnline, loadMoreFailed) {
+        if (shouldLoadMore && hasMoreResults && !isLoadingMore && !isSearchingOnline && !loadMoreFailed) {
             onLoadMore()
         }
     }
@@ -536,7 +537,8 @@ fun CloudLibraryScreen(
             } else if (hasMoreResults) {
                 item(key = "load_more_button") {
                     SoftButton(
-                        text = "Load 10 more (${displayedItems.size} of $totalOnlineCount)",
+                        text = if (loadMoreFailed) "Couldn't load more. Tap to try again"
+                               else "Load 10 more (${displayedItems.size} of $totalOnlineCount)",
                         onClick = onLoadMore,
                         light = false,
                         modifier = Modifier
