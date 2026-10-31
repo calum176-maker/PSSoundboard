@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+.kotlin
+# Signing keys never go in the repo
+*.jks
+*.keystore
+*.p12

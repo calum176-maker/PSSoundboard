@@ -1,0 +1,89 @@
+# Builds a test APK for every pull request and every change to main.
+# Changes to main are also published as a GitHub release, so the newest APK is always at:
+#   https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk
+#
+# Repository secrets (Settings > Secrets and variables > Actions):
+#   PSSB_KEYSTORE_B64       shared test signing key, base64 (every build installs over the last)
+#   PSSB_KEYSTORE_PASSWORD  its password
+#   PSSB_FEEDBACK_URL       optional: in-app feedback webhook
+#   PSSB_FEEDBACK_KEY       optional: its key (ends up inside the public APK, so low-trust)
+# Without the signing secrets the APK still builds (for checking) but is not published.
+
+name: Test APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: test-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PSSB_VERSION_CODE: ${{ github.run_number }}
+      PSSB_VERSION_NAME: 1.0 (build ${{ github.run_number }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unpack signing key
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.PSSB_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/pssb.p12"
+            echo "PSSB_KEYSTORE_FILE=$RUNNER_TEMP/pssb.p12" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No PSSB_KEYSTORE_B64 secret: building with a throwaway debug key, not publishing."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        env:
+          PSSB_KEYSTORE_PASSWORD: ${{ secrets.PSSB_KEYSTORE_PASSWORD }}
+          PSSB_FEEDBACK_URL: ${{ secrets.PSSB_FEEDBACK_URL }}
+          PSSB_FEEDBACK_KEY: ${{ secrets.PSSB_FEEDBACK_KEY }}
+        run: |
+          # gradle.properties pins a Windows JDK path for local builds; use the runner's JDK instead.
+          bash ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" assembleDebug lintDebug
+          cp app/build/outputs/apk/debug/app-debug.apk PSSoundboard.apk
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/pssb.p12"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PSSoundboard-build-${{ github.run_number }}
+          path: PSSoundboard.apk
+
+      - name: Publish release
+        if: github.event_name == 'push' && steps.signing.outputs.signed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Test build ${{ github.run_number }} from \`${GITHUB_SHA::7}\`."
+            echo
+            echo "**Install:** download PSSoundboard.apk below on your phone and open it."
+            echo "Before your first install from here, use Setup > Your decks > Export decks, then uninstall the old app (it was signed differently). After that, each new build installs over the last."
+          } > notes.md
+          # --generate-notes appends the pull requests merged since the previous build.
+          gh release create "build-${{ github.run_number }}" PSSoundboard.apk \
+            --title "Test build ${{ github.run_number }}" --notes-file notes.md --generate-notes --target "$GITHUB_SHA"
