@@ -23,9 +23,12 @@ the same PR.
    `ci/…`.
 3. **Don't merge your own PR.** Someone else reviews it and tries it.
 4. **Say how you tested it** (the PR template asks). "CI built it" is not a test of how it behaves.
-   Without Android Studio you can still test: every PR's checks page has a `Spewboard-build-N` APK,
-   signed with the shared key, that installs over the release build on your phone. Or ask AJ to run
-   it on the emulator.
+   - **On your own phone:** every PR's checks page has a `Spewboard-build-N` APK, signed with the
+     shared key, that installs over the release build. Use this for everyday checks.
+   - **Anything that needs the emulator is AJ's** (other Android versions, landscape and large-font
+     sweeps, TalkBack, fresh installs, before-and-after screenshots). Don't set up an emulator on
+     your machine: tick "Needs an emulator check" in the PR and mention @lt-flan with what to check.
+     AJ posts the results on the PR. Don't merge until they're in.
 5. **PR titles are release notes.** Merged PR titles become the in-app "What's new" list and the
    GitHub release notes, so write them for testers ("Mini-deck: close it without going back to the
    app"). Start titles that testers wouldn't notice with `CI:`, `Build:` or `Docs:`; those are left
