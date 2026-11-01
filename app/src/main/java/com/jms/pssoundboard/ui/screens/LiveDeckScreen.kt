@@ -700,7 +700,7 @@ private fun TactilePad(
                     maxLines = 3,
                     minFontSize = 20.sp
                 )
-                Text(modeLabel, color = ink, style = MaterialTheme.typography.labelSmall)
+                Text(modeLabel, color = ink, style = MaterialTheme.typography.labelMedium)
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -721,7 +721,7 @@ private fun TactilePad(
                     Text(
                         text = modeLabel,
                         color = ink,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                     )
                 }
             }
