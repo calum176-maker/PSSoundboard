@@ -16,15 +16,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.WhatsNew
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.gummy
 
 /** The changes in this build: shown once after an update, and from Setup any time. */
@@ -46,11 +43,9 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                     Text(
                         text = "What's new",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = BricolageCondensed,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp
+                        style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Spewboard v${notes.version}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text("Spewboard v${notes.version}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
                 Column(
                     modifier = Modifier
@@ -67,7 +62,7 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                                     .size(width = 14.dp, height = 13.dp)
                                     .gummy(blobColourFor(item), blobShapeFor(item))
                             )
-                            Text(item, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 20.sp)
+                            Text(item, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

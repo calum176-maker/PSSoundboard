@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
@@ -65,7 +64,6 @@ import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.PadPalette
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
@@ -320,8 +318,7 @@ fun CloudLibraryScreen(
             Text(
                 text = if (searchQuery.isBlank()) "Popular sounds" else "Search results",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.labelLarge,
             )
             val countText = when {
                 totalOnlineCount > 0 -> "${displayedItems.size} of $totalOnlineCount sounds"
@@ -333,8 +330,7 @@ fun CloudLibraryScreen(
                 Text(
                     text = meta.joinToString(" · "),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
         }
@@ -357,8 +353,7 @@ fun CloudLibraryScreen(
                 Text(
                     text = "${selectedItemIds.size} selected",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.weight(1f)
                 )
                 SoftButton(text = "Copy", onClick = { copySelected() }, light = false)
@@ -469,8 +464,7 @@ fun CloudLibraryScreen(
                         Text(
                             text = item.title,
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.titleSmall,
                             maxLines = 1,
                             overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                             modifier = Modifier
@@ -505,7 +499,7 @@ fun CloudLibraryScreen(
                         Text(
                             text = listOfNotNull(item.category, source).joinToString(" · "),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -588,8 +582,7 @@ fun CloudLibraryScreen(
                         Text(
                             text = "Fetching 10 more sounds…",
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
@@ -610,7 +603,7 @@ fun CloudLibraryScreen(
                     Text(
                         text = "That's all $totalOnlineCount sounds",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -623,8 +616,7 @@ fun CloudLibraryScreen(
                 Text(
                     text = "Powered by open internet sound directories, 10 results at a time. Every sound you spew is saved to your Spew Vault.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    fontSize = 11.sp,
-                    lineHeight = 15.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 14.dp)
                 )
             }
@@ -651,18 +643,15 @@ fun CloudLibraryScreen(
                     Text(
                         text = "Add from a web link",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = BricolageCondensed,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 26.sp
+                        style = MaterialTheme.typography.headlineMedium
                     )
                     Text(
                         text = "Paste any direct public .mp3, .wav or .ogg link to stream it and equip it to your pads.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
+                        style = MaterialTheme.typography.bodySmall,
                     )
 
-                    Text("Audio link", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Audio link", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                     PlayfulField(
                         value = directUrlInput,
                         onValueChange = { directUrlInput = it },
@@ -670,7 +659,7 @@ fun CloudLibraryScreen(
                         leadingIcon = PlayfulIcons.Link
                     )
 
-                    Text("Display name", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Display name", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                     PlayfulField(
                         value = directTitleInput,
                         onValueChange = { directTitleInput = it },
@@ -729,7 +718,7 @@ private fun PlayfulMenuItem(
             Text(
                 text = text,
                 color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                fontSize = 15.sp,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium
             )
         },

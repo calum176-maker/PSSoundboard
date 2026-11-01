@@ -46,7 +46,6 @@ import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
@@ -84,14 +83,12 @@ fun EquipTargetDialog(
                     Text(
                         text = "Add to a pad",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = BricolageCondensed,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp
+                        style = MaterialTheme.typography.headlineMedium
                     )
                     Text(
                         text = "${item.title} · ${item.category}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -125,7 +122,7 @@ fun EquipTargetDialog(
                     Text(
                         text = if (targetedPad?.filePath != null) "Replaces \"${targetedPad.title}\"" else "Empty pad",
                         color = if (targetedPad?.filePath != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 13.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -177,7 +174,7 @@ fun EquipTargetDialog(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
 }
 
 /** A mini pad in the target grid. Grows with the text, so long names and large fonts aren't cut off. */
@@ -208,7 +205,7 @@ private fun TargetPad(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$number", color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("$number", color = ink, style = MaterialTheme.typography.labelSmall)
             PadLabel(
                 text = title ?: "Empty",
                 style = TextStyle(

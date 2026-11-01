@@ -40,10 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.ui.components.PlayfulHeader
 import com.jms.pssoundboard.ui.theme.BeepCyan
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
@@ -144,17 +142,13 @@ fun HardwareGuideScreen(
                 Text(
                     text = beepLabel,
                     color = ink,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp,
-                    lineHeight = 16.sp
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
             Text(
                 text = "Plays a steady beep. If the cable works, your mic lights up in your voice chat app.",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                fontSize = 14.sp,
-                lineHeight = 19.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -171,15 +165,14 @@ fun HardwareGuideScreen(
             Text(
                 text = "Make the cable",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() }
             )
 
             TrrsPlug()
 
             NumberedStep(1, TipAmber) {
-                Text("Get a 3.5 mm plug with four sections (TRRS).", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, lineHeight = 19.sp)
+                Text("Get a 3.5 mm plug with four sections (TRRS).", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
             }
             NumberedStep(2, SleevePink) {
                 Text(
@@ -191,12 +184,11 @@ fun HardwareGuideScreen(
                         append(" through a 10 kΩ resistor.")
                     },
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp,
-                    lineHeight = 19.sp
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
             NumberedStep(3, BeepCyan) {
-                Text("Plug it in, join a voice chat on this phone and tap Test beep.", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, lineHeight = 19.sp)
+                Text("Plug it in, join a voice chat on this phone and tap Test beep.", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 2.dp)) {
@@ -215,12 +207,11 @@ fun HardwareGuideScreen(
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Your decks", color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Your decks", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
             Text(
                 "Save every deck, pad, sound and your Spew Vault to one file. Keep it safe, or open it on another phone to bring everything back.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
-                lineHeight = 18.sp
+                style = MaterialTheme.typography.bodySmall,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SoftButton(text = "Export decks", onClick = onExportDecks)
@@ -260,8 +251,8 @@ private fun StatusLine(label: String, value: String, colour: Color, valueColour:
                 .clip(ChipBlob)
                 .background(colour)
         )
-        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 19.sp, modifier = Modifier.weight(1f))
-        Text(value, color = valueColour, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(value, color = valueColour, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -313,8 +304,7 @@ private fun TrrsPlug() {
                 Text(
                     text = name,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     softWrap = false,
                     modifier = if (index == sections.lastIndex) Modifier.weight(1f) else Modifier.width(width + PlugGap)
@@ -336,7 +326,7 @@ private fun NumberedStep(number: Int, colour: Color, content: @Composable () -> 
                 .gummy(colour, PadShape.entries[(number - 1) % PadShape.entries.size].shape),
             contentAlignment = Alignment.Center
         ) {
-            Text(number.toString(), color = inkOn(colour), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text(number.toString(), color = inkOn(colour), style = MaterialTheme.typography.labelLarge)
         }
         Box(modifier = Modifier.weight(1f)) { content() }
     }
@@ -344,5 +334,5 @@ private fun NumberedStep(number: Int, colour: Color, content: @Composable () -> 
 
 @Composable
 private fun HintLine(text: String) {
-    Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
+    Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 }

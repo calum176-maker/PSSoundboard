@@ -26,12 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.BuildConfig
 import com.jms.pssoundboard.R
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.rememberReducedMotion
 import kotlinx.coroutines.delay
 
@@ -72,21 +69,17 @@ fun IntroSplash(onFinished: () -> Unit) {
                 Text(
                     text = "Spewboard",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 46.sp
+                    style = MaterialTheme.typography.displayMedium
                 )
                 Text(
                     text = "v${BuildConfig.VERSION_NAME}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelLarge,
                 )
                 Text(
                     text = "Spew into any voice chat",
                     color = MaterialTheme.colorScheme.primary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelMedium,
                 )
             }
         }

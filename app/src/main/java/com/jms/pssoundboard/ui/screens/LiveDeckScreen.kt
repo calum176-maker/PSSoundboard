@@ -141,7 +141,7 @@ fun LiveDeckScreen(
                     .padding(start = 4.dp, top = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 Text(
                     text = activeBoard.name,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -183,7 +183,7 @@ fun LiveDeckScreen(
                         text = board.name,
                         color = if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                        fontSize = 15.sp,
+                        style = MaterialTheme.typography.labelLarge,
                         maxLines = 1
                     )
                     if (isActive) {
@@ -227,7 +227,7 @@ fun LiveDeckScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Volume", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("Volume", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
             Slider(
                 value = gain,
                 onValueChange = onSetGain,
@@ -242,8 +242,7 @@ fun LiveDeckScreen(
             Text(
                 text = "${(gain * 100).roundToInt()}%",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
+                style = MaterialTheme.typography.labelMedium
             )
         }
     }
@@ -339,9 +338,7 @@ fun LiveDeckScreen(
                 Text(
                     text = "Stop all",
                     color = MaterialTheme.spew.onStop,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 21.sp
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         }
@@ -364,7 +361,7 @@ fun LiveDeckScreen(
                         text = "MANAGE DECK: ${board.name}",
                         color = MaterialTheme.spew.accent,
                         fontWeight = FontWeight.Black,
-                        fontSize = 16.sp
+                        style = MaterialTheme.typography.titleSmall
                     )
 
                     OutlinedTextField(
@@ -421,7 +418,7 @@ fun LiveDeckScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Clear All 12 Pads", fontSize = 11.sp)
+                            Text("Clear All 12 Pads", style = MaterialTheme.typography.bodySmall)
                         }
 
                         OutlinedButton(
@@ -434,7 +431,7 @@ fun LiveDeckScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Reset Defaults", fontSize = 11.sp)
+                            Text("Reset Defaults", style = MaterialTheme.typography.bodySmall)
                         }
                     }
 
@@ -449,7 +446,7 @@ fun LiveDeckScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Delete This Deck", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Delete This Deck", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -475,9 +472,7 @@ fun LiveDeckScreen(
                     Text(
                         text = "New deck",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = BricolageCondensed,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp
+                        style = MaterialTheme.typography.headlineMedium
                     )
                     PlayfulField(
                         value = newDeckTitle,
@@ -603,8 +598,7 @@ private fun EditPadsToggle(editing: Boolean, onToggle: () -> Unit) {
         Text(
             text = if (editing) "Done" else "Edit pads",
             color = ink,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.labelMedium,
             maxLines = 1
         )
     }
@@ -721,8 +715,7 @@ private fun TactilePad(
                     Text(
                         text = if (isPlaying) "Favourite · spewing" else "Favourite",
                         color = ink,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
                 PadLabel(
@@ -737,7 +730,7 @@ private fun TactilePad(
                     maxLines = 3,
                     minFontSize = 20.sp
                 )
-                Text(modeLabel, color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(modeLabel, color = ink, style = MaterialTheme.typography.labelSmall)
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -758,8 +751,7 @@ private fun TactilePad(
                     Text(
                         text = modeLabel,
                         color = ink,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }
