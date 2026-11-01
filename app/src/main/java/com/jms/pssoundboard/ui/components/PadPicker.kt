@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.data.model.DeckState
 import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.condensed
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.padColour
@@ -139,14 +139,11 @@ private fun TargetPad(
             Text("$number", color = ink, style = MaterialTheme.typography.labelSmall)
             PadLabel(
                 text = title ?: "Empty",
-                style = TextStyle(
-                    color = ink,
-                    fontSize = 13.sp,
-                    fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium,
-                    lineHeight = 1.15.em,
-                    textAlign = TextAlign.Center
-                ),
-                maxLines = 2
+                style = MaterialTheme.typography.labelMedium
+                    .condensed(if (filled) FontWeight.Bold else FontWeight.Medium)
+                    .copy(color = ink, lineHeight = 1.15.em, textAlign = TextAlign.Center),
+                maxLines = 2,
+                minFontSize = 9.sp
             )
         }
     }
