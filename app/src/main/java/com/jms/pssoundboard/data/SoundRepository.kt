@@ -100,9 +100,10 @@ class SoundRepository(
         if (boards == null || boards.isEmpty()) return null
         val fixedBoards = boards.filterNotNull().map { board ->
             val pads = (board.pads ?: emptyList()).filterNotNull().associateBy { it.slot }
+            val count = maxOf(PADS_PER_BOARD, board.pads?.size ?: 0, (pads.keys.maxOrNull()?.plus(1) ?: 0))
             board.copy(
                 name = board.name ?: "Board",
-                pads = List(PADS_PER_BOARD) { slot ->
+                pads = List(count) { slot ->
                     val p = pads[slot] ?: Pad(slot = slot)
                     p.copy(
                         slot = slot,
@@ -137,7 +138,35 @@ class SoundRepository(
 
     fun updatePad(boardId: String, pad: Pad) = mutate { s ->
         s.copy(boards = s.boards.map { b ->
-            if (b.id != boardId) b else b.copy(pads = b.pads.map { if (it.slot == pad.slot) pad else it })
+            if (b.id != boardId) b
+            else {
+                val exists = b.pads.any { it.slot == pad.slot }
+                if (exists) {
+                    b.copy(pads = b.pads.map { if (it.slot == pad.slot) pad else it })
+                } else {
+                    val needed = pad.slot + 1
+                    val paddedList = b.pads.toMutableList()
+                    while (paddedList.size < needed) {
+                        paddedList.add(Pad(slot = paddedList.size, title = "Empty", colorHex = "#334155"))
+                    }
+                    paddedList[pad.slot] = pad
+                    b.copy(pads = paddedList)
+                }
+            }
+        })
+    }
+
+    fun addPadsToBoard(boardId: String, count: Int = 3) = mutate { s ->
+        s.copy(boards = s.boards.map { b ->
+            if (b.id != boardId) b
+            else {
+                val currentSize = b.pads.size
+                val newPads = List(count) { offset ->
+                    val slot = currentSize + offset
+                    Pad(slot = slot, title = "Empty", colorHex = "#334155")
+                }
+                b.copy(pads = b.pads + newPads)
+            }
         })
     }
 
@@ -167,7 +196,7 @@ class SoundRepository(
     fun clearBoard(boardId: String) = mutate { s ->
         s.copy(boards = s.boards.map { b ->
             if (b.id != boardId) b
-            else b.copy(pads = List(PADS_PER_BOARD) { Pad(slot = it, title = "Empty", colorHex = "#334155") })
+            else b.copy(pads = List(b.pads.size.coerceAtLeast(PADS_PER_BOARD)) { Pad(slot = it, title = "Empty", colorHex = "#334155") })
         })
     }
 

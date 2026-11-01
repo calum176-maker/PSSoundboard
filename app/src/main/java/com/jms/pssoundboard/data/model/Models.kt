@@ -57,7 +57,9 @@ data class DeckState(
 
     fun board(id: String): Board? = boards.firstOrNull { it.id == id }
 
-    fun pad(ref: PadRef): Pad? = board(ref.boardId)?.pads?.getOrNull(ref.slot)
+    fun pad(ref: PadRef): Pad? = board(ref.boardId)?.let { b ->
+        b.pads.firstOrNull { it.slot == ref.slot } ?: b.pads.getOrNull(ref.slot)
+    }
 
     fun allFilePaths(): Set<String> =
         boards.flatMap { b -> b.pads.mapNotNull { it.filePath } }.toSet()

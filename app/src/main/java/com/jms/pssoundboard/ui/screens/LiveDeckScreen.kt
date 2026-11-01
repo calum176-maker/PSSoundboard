@@ -78,6 +78,7 @@ import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.components.CapsuleShape
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
@@ -107,6 +108,7 @@ fun LiveDeckScreen(
     onPressPad: (PadRef, Pad) -> Unit,
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
+    onAddCards: (boardId: String) -> Unit = {},
     onSetGain: (Float) -> Unit,
     onStopAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -352,6 +354,7 @@ fun LiveDeckScreen(
                     onPressPad = onPressPad,
                     onReleasePad = onReleasePad,
                     onEditPad = onEditPad,
+                    onAddCards = onAddCards,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -375,6 +378,7 @@ fun LiveDeckScreen(
                     onPressPad = onPressPad,
                     onReleasePad = onReleasePad,
                     onEditPad = onEditPad,
+                    onAddCards = onAddCards,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -591,6 +595,7 @@ private fun PadGrid(
     onPressPad: (PadRef, Pad) -> Unit,
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
+    onAddCards: (boardId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = 8.dp
@@ -610,7 +615,7 @@ private fun PadGrid(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(gap),
         verticalArrangement = Arrangement.spacedBy(gap),
-        contentPadding = PaddingValues(bottom = 8.dp)
+        contentPadding = PaddingValues(bottom = 16.dp)
     ) {
         items(
             items = displayPads,
@@ -641,6 +646,52 @@ private fun PadGrid(
                     .fillMaxWidth()
                     .height(cellHeight)
             )
+        }
+
+        // At the bottom of the deck, put a + button to add another 3 cards (no limit)
+        item(
+            span = { GridItemSpan(columnsCount) },
+            key = "add_more_cards_${board.id}"
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, bottom = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .height(52.dp)
+                        .gummy(MaterialTheme.colorScheme.primary, CapsuleShape)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Add 3 cards to ${board.name}"
+                        ) { onAddCards(board.id) }
+                        .padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .gummy(MaterialTheme.spew.onBlob, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = PlayfulIcons.Plus,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "+ Add 3 cards",
+                        color = MaterialTheme.spew.onBlob,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

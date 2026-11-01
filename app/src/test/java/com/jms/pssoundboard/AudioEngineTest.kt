@@ -78,4 +78,32 @@ class AudioEngineTest {
         assertEquals(4, miniDeck[0].first.slot)
         assertEquals(9, miniDeck[1].first.slot)
     }
+
+    @Test
+    fun deckState_unlimitedCardsExpansion_preservesAndResolvesAllPads() {
+        val initialPads = List(12) { slot ->
+            Pad(slot = slot, title = "Pad $slot", filePath = "/path/$slot.wav")
+        }
+        val board = Board(id = "unlimited", name = "Unlimited Deck", pads = initialPads)
+        val state = DeckState(boards = listOf(board), activeBoardId = "unlimited")
+        assertEquals(12, state.board("unlimited")?.pads?.size)
+
+        // Expand by 3 cards
+        val expandedPads = state.board("unlimited")!!.pads + List(3) { offset ->
+            val slot = 12 + offset
+            Pad(slot = slot, title = "Expanded $slot")
+        }
+        val state2 = state.copy(boards = listOf(board.copy(pads = expandedPads)))
+        assertEquals(15, state2.board("unlimited")?.pads?.size)
+        assertEquals("Expanded 14", state2.pad(PadRef("unlimited", 14))?.title)
+
+        // Expand by another 3 cards (now 18)
+        val expandedPads2 = state2.board("unlimited")!!.pads + List(3) { offset ->
+            val slot = 15 + offset
+            Pad(slot = slot, title = "Expanded $slot")
+        }
+        val state3 = state2.copy(boards = listOf(board.copy(pads = expandedPads2)))
+        assertEquals(18, state3.board("unlimited")?.pads?.size)
+        assertEquals("Expanded 17", state3.pad(PadRef("unlimited", 17))?.title)
+    }
 }

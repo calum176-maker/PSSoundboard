@@ -272,6 +272,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         withDeckUndo("Cleared all pads on \"$name\"") { repository.clearBoard(boardId) }
     }
 
+    fun addCardsToBoard(boardId: String, count: Int = 3) {
+        val name = deck.value.board(boardId)?.name ?: "Deck"
+        withDeckUndo("Added $count cards to \"$name\"") {
+            repository.addPadsToBoard(boardId, count)
+        }
+    }
+
     fun resetBoardToDefaults(boardId: String) {
         val name = deck.value.board(boardId)?.name ?: "Deck"
         withDeckUndo("Reset \"$name\" to its default sounds") { repository.resetBoardToDefaults(boardId) }

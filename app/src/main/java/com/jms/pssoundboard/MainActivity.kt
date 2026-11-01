@@ -360,6 +360,7 @@ fun MainScreen(
                         onPressPad = { ref, pad -> viewModel.pressPad(ref, pad) },
                         onReleasePad = { ref, pad -> viewModel.releasePad(ref, pad) },
                         onEditPad = { bId, pad -> editingPadInfo = bId to pad },
+                        onAddCards = { bId -> viewModel.addCardsToBoard(bId) },
                         onSetGain = { viewModel.setGain(it) },
                         onStopAll = { viewModel.stopAll() }
                     )

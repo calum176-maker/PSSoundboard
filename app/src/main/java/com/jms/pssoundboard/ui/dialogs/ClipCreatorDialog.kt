@@ -483,18 +483,19 @@ fun ClipCreatorDialog(
                             }
                         }
 
+                        val padCount = maxOf(deckState.board(targetBoardId)?.pads?.size ?: 12, 12)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Pad Slot (1 - 12):",
+                                text = "Pad Slot (1 - $padCount):",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.labelSmall,
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                (0 until 12).forEach { slot ->
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                items(padCount) { slot ->
                                     val isSelected = slot == targetSlot
                                     Box(
                                         modifier = Modifier

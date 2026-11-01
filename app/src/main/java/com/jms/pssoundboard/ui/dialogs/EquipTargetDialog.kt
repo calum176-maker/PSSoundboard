@@ -128,8 +128,16 @@ fun EquipTargetDialog(
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (row in 0 until 4) {
+                val padCapacity = maxOf(currentBoard.pads.size, 12)
+                val totalRows = (padCapacity + 2) / 3
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 260.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (row in 0 until totalRows) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -137,15 +145,19 @@ fun EquipTargetDialog(
                             for (col in 0 until 3) {
                                 val slot = row * 3 + col
                                 val pad = currentBoard.pads.getOrNull(slot)
-                                TargetPad(
-                                    number = slot + 1,
-                                    title = pad?.takeIf { it.filePath != null }?.title,
-                                    colourHex = pad?.colorHex,
-                                    shape = PadShape.of(pad?.shape, slot),
-                                    selected = slot == selectedSlot,
-                                    onClick = { selectedSlot = slot },
-                                    modifier = Modifier.weight(1f)
-                                )
+                                if (slot < padCapacity) {
+                                    TargetPad(
+                                        number = slot + 1,
+                                        title = pad?.takeIf { it.filePath != null }?.title,
+                                        colourHex = pad?.colorHex,
+                                        shape = PadShape.of(pad?.shape, slot),
+                                        selected = slot == selectedSlot,
+                                        onClick = { selectedSlot = slot },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                } else {
+                                    Box(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
