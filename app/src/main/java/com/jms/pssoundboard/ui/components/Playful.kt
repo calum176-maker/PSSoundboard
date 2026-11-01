@@ -1,6 +1,7 @@
 package com.jms.pssoundboard.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,15 +11,19 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,7 +92,8 @@ fun PlayfulHeader(
 
 /**
  * A pill-shaped choice. Selected chips are light on dark; [colour] makes a bright gummy chip
- * instead (used for categories).
+ * instead (used for categories), ringed when selected. [trailingIcon] adds a small round icon
+ * after the text, such as the edit button on the open deck.
  */
 @Composable
 fun BlobChip(
@@ -96,6 +102,8 @@ fun BlobChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colour: Color? = null,
+    trailingIcon: ImageVector? = null,
+    onClickLabel: String? = null,
 ) {
     val background = when {
         colour != null -> Modifier.gummy(colour, ChipBlob)
@@ -107,14 +115,24 @@ fun BlobChip(
         selected -> MaterialTheme.colorScheme.background
         else -> MaterialTheme.colorScheme.onSurface
     }
-    Box(
+    // Coloured chips always leave room for the ring, so selecting one doesn't shift the row.
+    val ring = if (colour != null) {
+        Modifier
+            .border(2.5.dp, if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, ChipBlob)
+            .padding(3.dp)
+    } else {
+        Modifier
+    }
+    Row(
         modifier = modifier
-            .height(40.dp)
+            .then(ring)
+            .heightIn(min = 48.dp)
             .then(background)
-            .clickable(role = Role.Tab, onClick = onClick)
+            .clickable(role = Role.Tab, onClickLabel = onClickLabel, onClick = onClick)
             .semantics { if (selected) contentDescription = "$text, selected" }
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center
+            .padding(start = 16.dp, end = if (trailingIcon != null) 7.dp else 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             text = text,
@@ -123,6 +141,17 @@ fun BlobChip(
             fontWeight = if (selected || colour != null) FontWeight.Bold else FontWeight.SemiBold,
             maxLines = 1
         )
+        if (trailingIcon != null) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(ink.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(trailingIcon, contentDescription = null, tint = ink, modifier = Modifier.size(15.dp))
+            }
+        }
     }
 }
 
@@ -246,6 +275,18 @@ fun PlayfulField(
         trailing?.invoke()
     }
 }
+
+/** Colours for an `OutlinedTextField`: the accent colour on the border, label and cursor while focused. */
+@Composable
+fun accentFieldColours(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedBorderColor = MaterialTheme.spew.accent,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    focusedLabelColor = MaterialTheme.spew.accent,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    cursorColor = MaterialTheme.spew.accent
+)
 
 /** A friendly status card (offline, empty states): blob art on the left, text, optional action. */
 @Composable
