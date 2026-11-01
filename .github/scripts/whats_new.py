@@ -2,22 +2,24 @@
 
 Usage: whats_new.py <version> <previous release tag or ""> <output json>
 
-The list is the titles of pull requests merged since the previous release (the
-same changes the GitHub release page lists), minus build-pipeline changes that
-testers don't see. Direct commits to main count too.
+For this build and the last few releases before it, the list holds the titles of pull requests
+merged in that release (the same changes the GitHub release pages list), minus build-pipeline and
+docs changes that testers don't see. The app shows every release newer than the one the person last
+saw, so skipping builds doesn't hide what changed. Direct commits to main count too.
 """
 import json
 import re
 import subprocess
 import sys
 
+MAX_RELEASES = 10
 MAX_ITEMS = 12
 # Changes testers can't see in the app: the build pipeline and docs-only tweaks.
 HIDDEN = re.compile(r"^(ci\b|ci/|build\b|docs?\b|readme\b|merge branch)", re.IGNORECASE)
+RELEASE_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 
 
-def changes(previous_tag: str) -> list[str]:
-    revs = f"{previous_tag}..HEAD" if previous_tag else "HEAD~15..HEAD"
+def changes(revs: str) -> list[str]:
     log = subprocess.run(
         ["git", "log", "--first-parent", "--format=%P%x1f%s%x1f%b%x1e", revs],
         capture_output=True, text=True, check=False,
@@ -38,14 +40,33 @@ def changes(previous_tag: str) -> list[str]:
     return items[:MAX_ITEMS]
 
 
+def release_tags() -> list[str]:
+    """Release tags (v1.0.N), oldest first."""
+    tags = subprocess.run(["git", "tag", "--list", "v*"], capture_output=True, text=True, check=False).stdout.split()
+    matched = [(tuple(int(n) for n in m.groups()), tag) for tag in tags if (m := RELEASE_TAG.match(tag))]
+    return [tag for _, tag in sorted(matched)]
+
+
 def main() -> None:
     version, previous_tag, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
-    items = changes(previous_tag)
+    tags = release_tags()
+    if previous_tag and previous_tag in tags:
+        tags = tags[: tags.index(previous_tag) + 1]
+
+    # This build first, then each earlier release, newest first.
+    releases = [{"version": version, "items": changes(f"{previous_tag}..HEAD" if previous_tag else "HEAD~15..HEAD")}]
+    for older, newer in zip(reversed(tags[:-1]), reversed(tags[1:])):
+        if len(releases) >= MAX_RELEASES:
+            break
+        releases.append({"version": newer.removeprefix("v"), "items": changes(f"{older}..{newer}")})
+    releases = [r for r in releases if r["items"]]
+
     with open(out_path, "w", encoding="utf-8") as out:
-        json.dump({"version": version, "items": items}, out, ensure_ascii=False, indent=2)
-    print(f"What's new for {version} ({len(items)} items since {previous_tag or 'the start'}):")
-    for item in items:
-        print(f"  - {item}")
+        json.dump({"version": version, "releases": releases}, out, ensure_ascii=False, indent=2)
+    for release in releases:
+        print(f"{release['version']}:")
+        for item in release["items"]:
+            print(f"  - {item}")
 
 
 if __name__ == "__main__":

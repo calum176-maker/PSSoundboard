@@ -150,12 +150,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             PSSoundboardTheme {
                 var showIntro by rememberSaveable { mutableStateOf(freshStart) }
+                // What's new: after an update, the releases since the one last seen; from Setup, all of them
                 var showWhatsNew by rememberSaveable { mutableStateOf(false) }
+                var whatsNewHistory by rememberSaveable { mutableStateOf(false) }
                 Box {
                     MainScreen(
                         viewModel = viewModel,
                         onLaunchOverlay = { toggleFloatingOverlay() },
-                        onShowWhatsNew = if (whatsNew.notes != null) ({ showWhatsNew = true }) else null
+                        onShowWhatsNew = if (whatsNew.notes != null) ({
+                            whatsNewHistory = true
+                            showWhatsNew = true
+                        }) else null
                     )
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showIntro,
@@ -165,15 +170,21 @@ class MainActivity : ComponentActivity() {
                         IntroSplash(onFinished = {
                             if (showIntro) {
                                 showIntro = false
-                                // First open of this version: show its changes once
-                                if (whatsNew.isUnseen()) showWhatsNew = true
+                                // First open of this version: show what changed, once
+                                if (whatsNew.isUnseen()) {
+                                    whatsNewHistory = false
+                                    showWhatsNew = true
+                                }
                             }
                         })
                     }
                 }
                 val notes = whatsNew.notes
                 if (showWhatsNew && notes != null) {
-                    WhatsNewDialog(notes = notes, onDismiss = {
+                    val releases = remember(whatsNewHistory) {
+                        if (whatsNewHistory) notes.releases else whatsNew.unseenReleases()
+                    }
+                    WhatsNewDialog(version = notes.version, releases = releases, onDismiss = {
                         showWhatsNew = false
                         whatsNew.markSeen()
                     })
@@ -236,7 +247,6 @@ fun MainScreen(
     val totalOnlineCount by viewModel.totalOnlineCount.collectAsState()
     val onlineSearchFailed by viewModel.onlineSearchFailed.collectAsState()
     val loadMoreFailed by viewModel.loadMoreFailed.collectAsState()
-    val selectedSoundSource by viewModel.selectedSoundSource.collectAsState()
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
@@ -373,8 +383,6 @@ fun MainScreen(
                         searchFailed = onlineSearchFailed,
                         loadMoreFailed = loadMoreFailed,
                         previewingId = previewingId,
-                        selectedSoundSource = selectedSoundSource,
-                        onSelectSoundSource = { viewModel.setSoundSource(it) },
                         onSearchOnline = { viewModel.searchOnline(it) },
                         onRetrySearch = { viewModel.retryOnlineSearch() },
                         onLoadMore = { viewModel.loadMoreOnline() },

@@ -8,6 +8,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +23,6 @@ import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
-import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.data.SpewVaultRepository
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.DeckState
@@ -43,6 +43,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+
+private const val TAG = "MainViewModel"
 
 class UndoableMessage(val text: String, val undo: () -> Unit)
 
@@ -91,16 +93,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _loadMoreFailed = MutableStateFlow(false)
     val loadMoreFailed: StateFlow<Boolean> = _loadMoreFailed.asStateFlow()
 
-    private val _selectedSoundSource = MutableStateFlow(SoundSource.ALL)
-    val selectedSoundSource: StateFlow<SoundSource> = _selectedSoundSource.asStateFlow()
-
-    fun setSoundSource(source: SoundSource) {
-        if (_selectedSoundSource.value != source) {
-            _selectedSoundSource.value = source
-            searchOnline(activeSearchQuery)
-        }
-    }
-
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
     private var searchJob: Job? = null
@@ -140,7 +132,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .onSuccess { s ->
                     _messages.tryEmit("Saved ${count(s.decks, "deck")} and ${count(s.sounds, "sound")}")
                 }
-                .onFailure { _messages.tryEmit("Couldn't save the backup: ${it.message ?: it.javaClass.simpleName}") }
+                .onFailure { fail("Couldn't save the backup. Try again.", it) }
             _busyMessage.value = null
         }
     }
@@ -164,12 +156,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     )
                 }
-                .onFailure { _messages.tryEmit("Couldn't import: ${it.message ?: it.javaClass.simpleName}") }
+                .onFailure { fail("Couldn't import that file. Check it's a Spewboard backup.", it) }
             _busyMessage.value = null
         }
     }
 
     private fun count(n: Int, noun: String) = "$n ${if (n == 1) noun else noun + "s"}"
+
+    /** Shows [message] and logs [error]: users get what didn't happen, never raw exception text. */
+    private fun fail(message: String, error: Throwable) {
+        Log.w(TAG, message, error)
+        _messages.tryEmit(message)
+    }
 
     // ---- Tester feedback --------------------------------------------------------------------
 
@@ -314,7 +312,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 _messages.tryEmit("⚡ Spewed: \"${item.title}\" into chat!")
             }.onFailure {
-                _messages.tryEmit("Spew failed: ${it.message ?: it.javaClass.simpleName}")
+                fail("Couldn't play \"${item.title}\". Try again.", it)
             }
             _busyMessage.value = null
         }
@@ -337,7 +335,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _messages.tryEmit("⚡ Spewed: \"${entry.title}\" (${entry.spewCount + 1}x)")
                 }
             }.onFailure {
-                _messages.tryEmit("Failed to spew: ${it.message}")
+                fail("Couldn't play \"${entry.title}\". Try again.", it)
             }
         }
     }
@@ -383,7 +381,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 _messages.tryEmit("💾 Saved \"${item.title}.wav\" to Downloads/Spewboard")
             }.onFailure {
-                _messages.tryEmit("Failed to save: ${it.message ?: it.javaClass.simpleName}")
+                fail("Couldn't save \"${item.title}\" to Downloads.", it)
             }
             _busyMessage.value = null
         }
@@ -392,7 +390,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveMultipleToDownloads(items: List<LibraryItem>) {
         if (items.isEmpty()) return
         viewModelScope.launch {
-            _busyMessage.value = "Saving ${items.size} clips to Downloads…"
+            _busyMessage.value = "Saving ${count(items.size, "clip")} to Downloads…"
             var successCount = 0
             items.forEach { item ->
                 runCatching {
@@ -403,10 +401,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         builtinId = item.builtinId
                     )
                     successCount++
-                }
+                }.onFailure { Log.w(TAG, "Couldn't save \"${item.title}\" to Downloads", it) }
             }
             _busyMessage.value = null
-            _messages.tryEmit("💾 Saved $successCount / ${items.size} clips to Downloads/Spewboard")
+            _messages.tryEmit("💾 Saved $successCount of ${count(items.size, "clip")} to Downloads/Spewboard")
         }
     }
 
@@ -468,7 +466,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 app.startActivity(chooser)
             }.onFailure {
-                _messages.tryEmit("Failed to share audio: ${it.message ?: it.javaClass.simpleName}")
+                fail("Couldn't share \"$title\".", it)
             }
             _busyMessage.value = null
         }
@@ -518,7 +516,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 app.startActivity(chooser)
             }.onFailure {
-                _messages.tryEmit("Failed to share audio: ${it.message ?: it.javaClass.simpleName}")
+                fail("Couldn't share those clips.", it)
             }
             _busyMessage.value = null
         }
@@ -560,7 +558,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
-            val pageResult = OnlineSoundService.searchSounds(query, page = 1, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(query, page = 1)
             _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
@@ -580,7 +578,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
             _loadMoreFailed.value = false
-            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
                 val existingUrls = _onlineSearchResults.value.mapNotNull { it.url }.toSet()
@@ -626,7 +624,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val boardName = deck.value.board(target.boardId)?.name ?: target.boardId
                 _messages.tryEmit("Equipped \"$title\" → $boardName · Pad ${target.slot + 1}")
             }.onFailure {
-                _messages.tryEmit("Equip failed: ${it.message ?: it.javaClass.simpleName}")
+                fail("Couldn't add \"$title\" to the pad.", it)
             }
             _busyMessage.value = null
         }
@@ -664,15 +662,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 player.setVolume(g, g)
                 player.setOnPreparedListener { it.start() }
                 player.setOnCompletionListener { if (previewPlayer === it) stopPreview() }
-                player.setOnErrorListener { mp, _, _ ->
+                player.setOnErrorListener { mp, what, extra ->
                     if (previewPlayer === mp) {
-                        stopPreview(); _messages.tryEmit("Preview failed (check your connection)")
+                        Log.w(TAG, "Preview of \"${item.title}\" failed: what=$what extra=$extra")
+                        stopPreview(); _messages.tryEmit("Couldn't preview \"${item.title}\". Check your connection.")
                     }
                     true
                 }
                 player.prepareAsync()
             }.onFailure {
-                stopPreview(); _messages.tryEmit("Preview failed: ${it.message}")
+                stopPreview(); fail("Couldn't preview \"${item.title}\".", it)
             }
         }
     }
@@ -695,7 +694,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            _messages.tryEmit("Recording failed: ${e.message ?: e.javaClass.simpleName}")
+            fail("Couldn't record. Is another app using the mic?", e)
             FloatArray(0)
         }
 
@@ -711,7 +710,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 lastClipPreviewPath?.let { old -> engine.unload(old); File(old).delete() }
                 lastClipPreviewPath = file.absolutePath
                 auditionFile(file.absolutePath)
-            }.onFailure { _messages.tryEmit("Preview failed: ${it.message}") }
+            }.onFailure { fail("Couldn't preview the clip.", it) }
         }
     }
 
@@ -740,7 +739,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 _messages.tryEmit("Clip \"${title.ifBlank { "My Clip" }}\" assigned to Pad ${target.slot + 1}")
                 onDone()
-            }.onFailure { _messages.tryEmit("Save failed: ${it.message}") }
+            }.onFailure { fail("Couldn't save \"${title.ifBlank { "My Clip" }}\".", it) }
             _busyMessage.value = null
         }
     }
@@ -784,7 +783,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     category = "Voice Changer"
                 )
                 _messages.tryEmit("Voice FX clip \"${title.ifBlank { "Voice FX Clip" }}\" saved to Vault")
-            }.onFailure { _messages.tryEmit("Save failed: ${it.message}") }
+            }.onFailure { fail("Couldn't save \"${title.ifBlank { "Voice FX Clip" }}\".", it) }
             _busyMessage.value = null
         }
     }
@@ -799,7 +798,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 lastClipPreviewPath?.let { old -> engine.unload(old); File(old).delete() }
                 lastClipPreviewPath = file.absolutePath
                 auditionFile(file.absolutePath)
-            }.onFailure { _messages.tryEmit("Preview failed: ${it.message}") }
+            }.onFailure { fail("Couldn't preview the clip.", it) }
         }
     }
 
@@ -818,7 +817,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         localUri = file.absolutePath
                     )
                 )
-            }.onFailure { _messages.tryEmit("Spew failed: ${it.message}") }
+            }.onFailure { fail("Couldn't play \"${title.ifBlank { "Voice FX Clip" }}\". Try again.", it) }
         }
     }
 

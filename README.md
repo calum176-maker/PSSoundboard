@@ -15,15 +15,15 @@ A new test build is published every time a change is merged. Coming from an olde
 
 ## ✨ Key Features
 
-### 1. 🎙️ Live Voice Changer & Celebrity Presets
+### 1. 🎙️ Live Voice Changer & Voice Presets
 Transform your voice in real time and spew modified audio straight into voice chat:
-- **Instant Celebrity & Character Presets**:
-  - **Arnold (Terminator)** (`🦾`): Deep action hero pitch shift (-4.5 st) + saturation drive.
-  - **Darth Vader** (`🦹`): Dark lord pitch shift (-7.5 st) + robot ring-modulation + echo.
-  - **Morgan Freeman** (`🎙️`): Warm narrator pitch shift (-3 st) + rich echo.
-  - **Dark Knight (Batman)** (`🦇`): Gritty hero pitch shift (-6 st) + drive.
-  - **Gordon Ramsay** (`👨‍🍳`): Aggressive radio-filtered broadcast voice + drive.
-  - **Master Yoda** (`🟢`): Wise sage pitch shift (+4.5 st) + gentle echo.
+- **Instant Voice Presets**:
+  - **Action Cyborg** (`🦾`): Deep action hero pitch shift (-4.5 st) + saturation drive.
+  - **Dark Lord** (`🦹`): Dark lord pitch shift (-7.5 st) + robot ring-modulation + echo.
+  - **Warm Narrator** (`🎙️`): Warm narrator pitch shift (-3 st) + rich echo.
+  - **Gritty Vigilante** (`🦇`): Gritty hero pitch shift (-6 st) + drive.
+  - **Angry Chef** (`👨‍🍳`): Aggressive radio-filtered broadcast voice + drive.
+  - **Wise Sage** (`🟢`): Wise sage pitch shift (+4.5 st) + gentle echo.
   - **Classics**: Chipmunk, Deep Voice, Demon, Robot, Pit Radio, Alien, Cave Echo, and Natural.
 - **Fine-Tuning Controls**: Adjustable pitch semitones, robot ring-mod frequency, pit-radio band-pass filter, saturation drive, echo mix, mic input gain, and noise gate threshold.
 - **Record, Test & Spew**: Record voice clips with active voice FX, audition them, spew them instantly into voice chat, or save them to your vault.
@@ -35,7 +35,7 @@ Transform your voice in real time and spew modified audio straight into voice ch
 
 ### 3. 🌐 Cloud Sound Library & Instant Search
 - Integrated search across internet memes, movie quotes, and gaming sound clips (powered by MyInstants API with 10-at-a-time pagination and infinite scroll).
-- Curated quick-search tags for Movies, Gaming, Memes, and Characters (Terminator, Batman, Gordon Ramsay, Star Wars, etc.).
+- Curated quick-search tags for Movies, Gaming, Memes, and Characters (Sci-Fi, Action, Retro, Arcade, etc.).
 
 ### 4. ⚡ Master Spew Vault & Clip Creator
 - Automatically remembers every sound you spew, preview, or record into a master vault.
@@ -77,3 +77,4 @@ To contribute:
    ```
 2. Open the project in **Android Studio**.
 3. Create a feature branch (`git checkout -b feature/amazing-feature`), commit your changes, and push to GitHub!
+

@@ -52,7 +52,6 @@ import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
-import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
@@ -86,8 +85,6 @@ fun CloudLibraryScreen(
     searchFailed: Boolean,
     loadMoreFailed: Boolean,
     previewingId: String?,
-    selectedSoundSource: SoundSource = SoundSource.ALL,
-    onSelectSoundSource: (SoundSource) -> Unit = {},
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
@@ -104,7 +101,7 @@ fun CloudLibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedPreset by remember { mutableStateOf<String?>("Trending Memes") }
+    var selectedPreset by remember { mutableStateOf<String?>("Trending") }
     var customUrlDialogOpen by remember { mutableStateOf(false) }
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var addMenuExpanded by remember { mutableStateOf(false) }
@@ -161,6 +158,11 @@ fun CloudLibraryScreen(
         } else {
             onlineResults
         }
+    }
+
+    // Only a search has a real total. Trending has none, and its list also holds the built-in sounds.
+    val knownTotal = totalOnlineCount.takeIf {
+        searchQuery.isNotBlank() && !OnlineSoundService.isTrendingQuery(searchQuery) && it >= displayedItems.size
     }
 
     fun copySelected() {
@@ -253,7 +255,7 @@ fun CloudLibraryScreen(
                             contentDescription = "Clear search",
                             onClick = {
                                 searchQuery = ""
-                                selectedPreset = "Trending Memes"
+                                selectedPreset = "Trending"
                                 onSearchOnline("")
                             }
                         )
@@ -261,23 +263,6 @@ fun CloudLibraryScreen(
                 }
             }
         )
-
-        // Sound source filter chips (All sources, 101Soundboards, MyInstants)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SoundSource.entries.forEachIndexed { index, src ->
-                val isSelected = selectedSoundSource == src
-                BlobChip(
-                    text = src.label,
-                    selected = isSelected,
-                    colour = PadPalette[(index + 3) % PadPalette.size].toComposeColor(),
-                    onClick = { onSelectSoundSource(src) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
 
         // Preset quick search chips, each a gummy colour; the selected one gets a light ring
         LazyRow(
@@ -316,12 +301,12 @@ fun CloudLibraryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (searchQuery.isBlank()) "Popular sounds" else "Search results",
+                text = if (searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery)) "Trending sounds" else "Search results",
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.labelLarge,
             )
             val countText = when {
-                totalOnlineCount > 0 -> "${displayedItems.size} of $totalOnlineCount sounds"
+                knownTotal != null -> "${displayedItems.size} of $knownTotal sounds"
                 displayedItems.isNotEmpty() -> "${displayedItems.size} sounds"
                 else -> null
             }
@@ -465,7 +450,8 @@ fun CloudLibraryScreen(
                             text = item.title,
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
+                            // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
+                            maxLines = if (isScrollingTitle) 1 else 2,
                             overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -489,7 +475,6 @@ fun CloudLibraryScreen(
                                 )
                         )
                         val source = when {
-                            item.source.contains("101", ignoreCase = true) -> "101Soundboards"
                             item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
                             item.source.contains("built-in", ignoreCase = true) -> "built-in"
                             item.url != null -> "online"
@@ -590,7 +575,8 @@ fun CloudLibraryScreen(
                 item(key = "load_more_button") {
                     SoftButton(
                         text = if (loadMoreFailed) "Couldn't load more. Tap to try again"
-                               else "Load 10 more (${displayedItems.size} of $totalOnlineCount)",
+                               else if (knownTotal != null) "Load 10 more (${displayedItems.size} of $knownTotal)"
+                               else "Load 10 more",
                         onClick = onLoadMore,
                         light = false,
                         modifier = Modifier
@@ -601,7 +587,7 @@ fun CloudLibraryScreen(
             } else if (displayedItems.isNotEmpty() && totalOnlineCount > 0) {
                 item(key = "all_loaded_indicator") {
                     Text(
-                        text = "That's all $totalOnlineCount sounds",
+                        text = "That's all ${displayedItems.size} sounds",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
