@@ -71,8 +71,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Spew Vault: directory of every clip remembered when spewed
     val spewEntries: StateFlow<List<SpewEntry>> = vaultRepository.entries
 
-    // Selected sound source (Voicemod Tuna, All Sources, MyInstants)
-    private val _selectedSoundSource = MutableStateFlow(SoundSource.TUNA)
+    // Selected sound source (All Sources by default, Voicemod Tuna, MyInstants)
+    private val _selectedSoundSource = MutableStateFlow(SoundSource.ALL)
     val selectedSoundSource: StateFlow<SoundSource> = _selectedSoundSource.asStateFlow()
 
     fun setSoundSource(source: SoundSource) {

@@ -86,7 +86,7 @@ fun CloudLibraryScreen(
     searchFailed: Boolean,
     loadMoreFailed: Boolean,
     previewingId: String?,
-    selectedSoundSource: SoundSource = SoundSource.TUNA,
+    selectedSoundSource: SoundSource = SoundSource.ALL,
     onSelectSoundSource: (SoundSource) -> Unit = {},
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
@@ -108,6 +108,7 @@ fun CloudLibraryScreen(
     var customUrlDialogOpen by remember { mutableStateOf(false) }
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var addMenuExpanded by remember { mutableStateOf(false) }
+    var sourceMenuExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     // Debounce search query so user typing queries the online API
@@ -248,7 +249,7 @@ fun CloudLibraryScreen(
                             color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp,
                             modifier = Modifier
-                                .padding(end = 6.dp)
+                                .padding(end = 4.dp)
                                 .size(18.dp)
                         )
                     }
@@ -262,6 +263,42 @@ fun CloudLibraryScreen(
                                 onSearchOnline("")
                             }
                         )
+                    }
+                    // Filter button to change sound sources (All Sources, Voicemod Tuna, MyInstants)
+                    Box {
+                        val isFiltered = selectedSoundSource != SoundSource.ALL
+                        IconBlobButton(
+                            icon = PlayfulIcons.Setup,
+                            contentDescription = "Select sound source: currently ${selectedSoundSource.label}",
+                            colour = if (isFiltered) MaterialTheme.colorScheme.primary else null,
+                            size = 38.dp,
+                            iconSize = 18.dp,
+                            onClick = { sourceMenuExpanded = true }
+                        )
+                        DropdownMenu(
+                            expanded = sourceMenuExpanded,
+                            onDismissRequest = { sourceMenuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            Text(
+                                text = "SOUND SOURCE",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                            SoundSource.entries.forEach { src ->
+                                val isSelected = selectedSoundSource == src
+                                PlayfulMenuItem(
+                                    text = if (isSelected) "✓  ${src.label}" else "    ${src.label}",
+                                    icon = PlayfulIcons.Library,
+                                    highlight = isSelected
+                                ) {
+                                    sourceMenuExpanded = false
+                                    onSelectSoundSource(src)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -295,34 +332,7 @@ fun CloudLibraryScreen(
             }
         }
 
-        // Sound source chips (Voicemod Tuna, All Sources, MyInstants)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SoundSource.entries.forEach { src ->
-                val isSelected = selectedSoundSource == src
-                Box(
-                    modifier = Modifier
-                        .border(
-                            2.dp,
-                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            ChipBlob
-                        )
-                        .padding(2.dp)
-                ) {
-                    BlobChip(
-                        text = src.label,
-                        selected = isSelected,
-                        colour = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        onClick = { onSelectSoundSource(src) }
-                    )
-                }
-            }
-        }
-
-        // Section label with sound counter
+        // Section label with sound counter and active source tag if filtered
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -330,11 +340,24 @@ fun CloudLibraryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery)) "Trending sounds" else "Search results",
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.labelLarge,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = if (searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery)) "Trending sounds" else "Search results",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (selectedSoundSource != SoundSource.ALL) {
+                    Text(
+                        text = "(${selectedSoundSource.label})",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
             val countText = when {
                 knownTotal != null -> "${displayedItems.size} of $knownTotal sounds"
                 displayedItems.isNotEmpty() -> "${displayedItems.size} sounds"
@@ -343,7 +366,7 @@ fun CloudLibraryScreen(
             val meta = listOfNotNull(countText, if (hasMoreResults) "scroll for 10 more" else null)
             if (meta.isNotEmpty()) {
                 Text(
-                    text = meta.joinToString(" Â· "),
+                    text = meta.joinToString(" · "),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
                 )

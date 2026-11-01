@@ -97,7 +97,7 @@ object OnlineSoundService {
     suspend fun searchSounds(
         query: String,
         page: Int = 1,
-        source: SoundSource = SoundSource.TUNA
+        source: SoundSource = SoundSource.ALL
     ): OnlineSearchResult = withContext(Dispatchers.IO) {
         val cleanQuery = query.trim()
         val cacheKey = "${source.id}:$cleanQuery:p$page"
