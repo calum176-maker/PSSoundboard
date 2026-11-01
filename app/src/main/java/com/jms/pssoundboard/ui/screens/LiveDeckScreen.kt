@@ -129,31 +129,44 @@ fun LiveDeckScreen(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     @Composable
-    fun DeckTitle(titleSize: TextUnit) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    fun DeckName(titleSize: TextUnit, modifier: Modifier = Modifier) {
+        Column(
+            modifier = modifier.padding(start = 4.dp, top = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp, top = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = activeBoard.name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = titleSize,
-                    lineHeight = titleSize * 0.95f,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = activeBoard.name,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = BricolageCondensed,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = titleSize,
+                lineHeight = titleSize * 0.95f,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+
+    // The landscape column is only 240 dp wide, so there the toggle gets its own row
+    // rather than squeezing the deck name.
+    @Composable
+    fun DeckTitle(titleSize: TextUnit, toggleOnOwnRow: Boolean) {
+        val toggle = @Composable { EditPadsToggle(editing = editingPads, onToggle = { editingPads = !editingPads }) }
+        if (toggleOnOwnRow) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DeckName(titleSize)
+                toggle()
             }
-            EditPadsToggle(editing = editingPads, onToggle = { editingPads = !editingPads })
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DeckName(titleSize, Modifier.weight(1f))
+                toggle()
+            }
         }
     }
 
@@ -263,7 +276,7 @@ fun LiveDeckScreen(
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    DeckTitle(30.sp)
+                    DeckTitle(30.sp, toggleOnOwnRow = true)
                     DeckChips()
                     Spacer(modifier = Modifier.weight(1f))
                     VolumePill()
@@ -290,7 +303,7 @@ fun LiveDeckScreen(
                     .padding(horizontal = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                DeckTitle(38.sp)
+                DeckTitle(38.sp, toggleOnOwnRow = false)
                 DeckChips()
                 PadGrid(
                     board = activeBoard,
