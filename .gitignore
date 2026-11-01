@@ -25,8 +25,3 @@ app/src/main/assets/whats_new.json
 *.jks
 *.keystore
 keystore.properties
-
-# Release Keystores
-*.jks
-*.keystore
-keystore.properties
