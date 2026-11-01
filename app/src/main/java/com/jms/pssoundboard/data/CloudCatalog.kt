@@ -13,6 +13,8 @@ data class LibraryItem(
     val builtinId: String? = null,
     val localUri: String? = null,
     val source: String = "Built-in",
+    val durationMs: Long? = null,
+    val iconUrl: String? = null,
 ) {
     val isRemote: Boolean get() = url != null
 }

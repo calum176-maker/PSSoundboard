@@ -23,6 +23,7 @@ import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
+import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.data.SpewVaultRepository
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.DeckState
@@ -69,6 +70,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Spew Vault: directory of every clip remembered when spewed
     val spewEntries: StateFlow<List<SpewEntry>> = vaultRepository.entries
+
+    // Selected sound source (Voicemod Tuna, All Sources, MyInstants)
+    private val _selectedSoundSource = MutableStateFlow(SoundSource.TUNA)
+    val selectedSoundSource: StateFlow<SoundSource> = _selectedSoundSource.asStateFlow()
+
+    fun setSoundSource(source: SoundSource) {
+        if (_selectedSoundSource.value != source) {
+            _selectedSoundSource.value = source
+            searchOnline(activeSearchQuery)
+        }
+    }
 
     // Online search state for internet memes & movie quotes (10 at a time with infinite scroll)
     private val _onlineSearchResults = MutableStateFlow<List<LibraryItem>>(emptyList())
@@ -558,7 +570,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
-            val pageResult = OnlineSoundService.searchSounds(query, page = 1)
+            val pageResult = OnlineSoundService.searchSounds(query, page = 1, source = _selectedSoundSource.value)
             _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
@@ -578,7 +590,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
             _loadMoreFailed.value = false
-            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage)
+            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage, source = _selectedSoundSource.value)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
                 val existingUrls = _onlineSearchResults.value.mapNotNull { it.url }.toSet()

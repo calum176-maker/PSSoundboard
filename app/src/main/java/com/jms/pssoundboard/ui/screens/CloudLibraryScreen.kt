@@ -1,4 +1,4 @@
-package com.jms.pssoundboard.ui.screens
+﻿package com.jms.pssoundboard.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,6 +52,7 @@ import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
+import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
@@ -85,6 +86,8 @@ fun CloudLibraryScreen(
     searchFailed: Boolean,
     loadMoreFailed: Boolean,
     previewingId: String?,
+    selectedSoundSource: SoundSource = SoundSource.TUNA,
+    onSelectSoundSource: (SoundSource) -> Unit = {},
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
@@ -292,6 +295,33 @@ fun CloudLibraryScreen(
             }
         }
 
+        // Sound source chips (Voicemod Tuna, All Sources, MyInstants)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SoundSource.entries.forEach { src ->
+                val isSelected = selectedSoundSource == src
+                Box(
+                    modifier = Modifier
+                        .border(
+                            2.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            ChipBlob
+                        )
+                        .padding(2.dp)
+                ) {
+                    BlobChip(
+                        text = src.label,
+                        selected = isSelected,
+                        colour = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        onClick = { onSelectSoundSource(src) }
+                    )
+                }
+            }
+        }
+
         // Section label with sound counter
         Row(
             modifier = Modifier
@@ -313,7 +343,7 @@ fun CloudLibraryScreen(
             val meta = listOfNotNull(countText, if (hasMoreResults) "scroll for 10 more" else null)
             if (meta.isNotEmpty()) {
                 Text(
-                    text = meta.joinToString(" · "),
+                    text = meta.joinToString(" Â· "),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelSmall,
                 )
@@ -475,14 +505,25 @@ fun CloudLibraryScreen(
                                 )
                         )
                         val source = when {
+                            item.source.contains("tuna", ignoreCase = true) || item.source.contains("voicemod", ignoreCase = true) -> "Voicemod Tuna"
                             item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
                             item.source.contains("built-in", ignoreCase = true) -> "built-in"
-                            item.url != null -> "online"
+                            item.url != null -> item.source.ifBlank { "online" }
                             item.builtinId != null && !item.category.contains("built-in", ignoreCase = true) -> "built-in"
                             else -> null
                         }
+                        val durationText = item.durationMs?.let { ms ->
+                            val totalSecs = ms / 1000.0
+                            if (totalSecs < 60) {
+                                String.format(java.util.Locale.US, "%.1fs", totalSecs)
+                            } else {
+                                val mins = (totalSecs / 60).toInt()
+                                val secs = (totalSecs % 60).toInt()
+                                String.format(java.util.Locale.US, "%d:%02d", mins, secs)
+                            }
+                        }
                         Text(
-                            text = listOfNotNull(item.category, source).joinToString(" · "),
+                            text = listOfNotNull(item.category, durationText, source).joinToString(" · "),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
@@ -565,7 +606,7 @@ fun CloudLibraryScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Fetching 10 more sounds…",
+                            text = "Fetching 10 more soundsâ€¦",
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -743,3 +784,4 @@ private fun SearchStatusCard(failed: Boolean, query: String, onRetry: () -> Unit
         } else null
     )
 }
+

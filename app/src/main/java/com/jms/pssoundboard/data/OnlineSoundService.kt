@@ -1,7 +1,8 @@
-package com.jms.pssoundboard.data
+﻿package com.jms.pssoundboard.data
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -15,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Filterable sources for online sound searches.
  */
 enum class SoundSource(val id: String, val label: String) {
-    ALL("all", "All Sounds"),
+    TUNA("tuna", "Voicemod Tuna"),
+    ALL("all", "All Sources"),
     MY_INSTANTS("myinstants", "MyInstants")
 }
 
@@ -48,9 +50,9 @@ object OnlineSoundService {
     val PRESET_QUICK_SEARCHES = listOf(
         "Trending" to "",
         "Movie Quotes" to "movie",
-        "Star Wars" to "star wars",
-        "Terminator" to "terminator",
-        "Batman" to "batman",
+        "Bruh" to "Bruh",
+        "Vine Boom" to "Vine Boom",
+        "GET OUT!" to "GET OUT!",
         "Avengers" to "avengers",
         "Godfather" to "godfather",
         "Pulp Fiction" to "pulp fiction",
@@ -76,7 +78,7 @@ object OnlineSoundService {
         "Rick Roll" to "rick roll",
         "Airhorn" to "airhorn",
         "Curb Theme" to "curb",
-        "Gordon Ramsay" to "gordon ramsay",
+        "HUH?" to "HUH?",
     )
 
     /**
@@ -90,21 +92,51 @@ object OnlineSoundService {
 
     /**
      * Searches for sounds with relevance ranking and pagination.
-     * When [query] is empty or "trending", returns the live viral trending chart.
+     * When [query] is empty or "trending", returns community meme / trending charts.
      */
     suspend fun searchSounds(
         query: String,
         page: Int = 1,
-        source: SoundSource = SoundSource.ALL
+        source: SoundSource = SoundSource.TUNA
     ): OnlineSearchResult = withContext(Dispatchers.IO) {
         val cleanQuery = query.trim()
-        val cacheKey = "$cleanQuery:p$page"
+        val cacheKey = "${source.id}:$cleanQuery:p$page"
         cache[cacheKey]?.let { return@withContext it }
 
-        val result = if (isTrendingQuery(cleanQuery)) {
-            fetchTrendingPage(page)
-        } else {
-            fetchMyInstantsPage(cleanQuery, page)
+        val result = when (source) {
+            SoundSource.TUNA -> TunaSoundService.searchTunaSounds(cleanQuery, page = page, pageSize = 10)
+            SoundSource.MY_INSTANTS -> {
+                if (isTrendingQuery(cleanQuery)) fetchTrendingPage(page)
+                else fetchMyInstantsPage(cleanQuery, page)
+            }
+            SoundSource.ALL -> {
+                val tunaDeferred = async { TunaSoundService.searchTunaSounds(cleanQuery, page = page, pageSize = 8) }
+                val myInstantsDeferred = async {
+                    if (isTrendingQuery(cleanQuery)) fetchTrendingPage(page)
+                    else fetchMyInstantsPage(cleanQuery, page)
+                }
+                val tunaRes = tunaDeferred.await()
+                val myInstantsRes = myInstantsDeferred.await()
+
+                val combined = mutableListOf<LibraryItem>()
+                val maxLen = maxOf(tunaRes.items.size, myInstantsRes.items.size)
+                for (i in 0 until maxLen) {
+                    if (i < tunaRes.items.size) combined.add(tunaRes.items[i])
+                    if (i < myInstantsRes.items.size) combined.add(myInstantsRes.items[i])
+                }
+
+                val hasMore = tunaRes.hasMore || myInstantsRes.hasMore
+                val totalCount = tunaRes.totalCount + myInstantsRes.totalCount
+                val failed = tunaRes.failed && myInstantsRes.failed
+
+                OnlineSearchResult(
+                    items = combined,
+                    totalCount = totalCount,
+                    hasMore = hasMore,
+                    page = page,
+                    failed = failed
+                )
+            }
         }
 
         // Fallback on page 1 if query returned 0 results: try sanitized alphanumeric query
@@ -328,7 +360,7 @@ object OnlineSoundService {
         val text = "$name $desc $query".lowercase()
         return when {
             text.contains("movie") || text.contains("film") || text.contains("hollywood") ||
-                text.contains("terminator") || text.contains("star wars") || text.contains("batman") ||
+                text.contains("Vine Boom") || text.contains("Bruh") || text.contains("GET OUT!") ||
                 text.contains("wilhelm") || text.contains("cinema") || text.contains("godfather") ||
                 text.contains("pulp fiction") || text.contains("matrix") || text.contains("avengers") -> "Movie Quote"
             text.contains("game") || text.contains("gta") || text.contains("csgo") ||
@@ -340,3 +372,4 @@ object OnlineSoundService {
         }
     }
 }
+

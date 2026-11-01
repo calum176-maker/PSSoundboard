@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.jms.pssoundboard.data.LibraryItem
+import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.service.FloatingOverlayService
@@ -247,6 +248,7 @@ fun MainScreen(
     val totalOnlineCount by viewModel.totalOnlineCount.collectAsState()
     val onlineSearchFailed by viewModel.onlineSearchFailed.collectAsState()
     val loadMoreFailed by viewModel.loadMoreFailed.collectAsState()
+    val selectedSoundSource by viewModel.selectedSoundSource.collectAsState()
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
@@ -383,6 +385,8 @@ fun MainScreen(
                         searchFailed = onlineSearchFailed,
                         loadMoreFailed = loadMoreFailed,
                         previewingId = previewingId,
+                        selectedSoundSource = selectedSoundSource,
+                        onSelectSoundSource = { viewModel.setSoundSource(it) },
                         onSearchOnline = { viewModel.searchOnline(it) },
                         onRetrySearch = { viewModel.retryOnlineSearch() },
                         onLoadMore = { viewModel.loadMoreOnline() },
