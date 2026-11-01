@@ -53,7 +53,7 @@ class FeedbackRepository(context: Context) {
 
     /** Plain-text version for sharing when there is no endpoint. */
     fun reportAsText(report: JSONObject): String = buildString {
-        appendLine("PSSoundboard feedback (${report.optString("category")}, ${report.optString("screen")})")
+        appendLine("Spewboard feedback (${report.optString("category")}, ${report.optString("screen")})")
         appendLine()
         appendLine(report.optString("message"))
         report.optJSONObject("details")?.let { d ->

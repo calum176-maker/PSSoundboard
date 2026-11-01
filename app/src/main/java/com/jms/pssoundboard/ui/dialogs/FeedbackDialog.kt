@@ -151,7 +151,7 @@ fun FeedbackDialog(
 
                 Text(
                     text = if (configured) {
-                        "Your feedback goes privately to the PSSoundboard team. No need to add your name or contact details."
+                        "Your feedback goes privately to the Spewboard team. No need to add your name or contact details."
                     } else {
                         "This test build can't send directly. Tap Share to pass your report on by message or email."
                     },

@@ -269,7 +269,7 @@ fun VoiceChangerScreen(
 
                 if (micDenied && !isRecording) {
                     Text(
-                        text = "Microphone access is off. Allow it when asked, or in Settings › Apps › PS Party Soundboard › Permissions.",
+                        text = "Microphone access is off. Allow it when asked, or in Settings › Apps › Spewboard › Permissions.",
                         color = CableAmber,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center
@@ -297,7 +297,7 @@ fun VoiceChangerScreen(
                     if (ready) {
                         SpewButton(
                             onClick = { samples?.let { onSpewSamples(it, clipTitle) } },
-                            contentDescription = "Spew the recording into party chat",
+                            contentDescription = "Spew the recording into voice chat",
                             label = "Spew it"
                         )
                     } else {

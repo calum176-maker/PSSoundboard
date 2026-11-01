@@ -260,7 +260,7 @@ class SoundRepository(
                     connectTimeout = 15_000
                     readTimeout = 30_000
                     instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "PSPartySoundboard/1.0 (Android)")
+                    setRequestProperty("User-Agent", "Spewboard/1.0 (Android)")
                 }
                 val code = connection.responseCode
                 if (code in 300..399 && redirects < 5) {
@@ -337,7 +337,7 @@ class SoundRepository(
         file
     }
 
-    /** Saves an audio clip to the device's public Downloads/PSSoundboard folder. */
+    /** Saves an audio clip to the device's public Downloads/Spewboard folder. */
     suspend fun saveSoundToDownloads(
         title: String,
         url: String? = null,
@@ -357,17 +357,17 @@ class SoundRepository(
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, "$cleanTitle.wav")
                 put(MediaStore.MediaColumns.MIME_TYPE, "audio/wav")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/PSSoundboard")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Spewboard")
             }
             val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                 ?: throw IOException("Could not create MediaStore entry in Downloads")
             context.contentResolver.openOutputStream(uri)?.use { out ->
                 sourceFile.inputStream().use { input -> input.copyTo(out) }
             } ?: throw IOException("Could not write audio to MediaStore")
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "PSSoundboard/$cleanTitle.wav")
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Spewboard/$cleanTitle.wav")
         } else {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val appDir = File(downloadsDir, "PSSoundboard").apply { mkdirs() }
+            val appDir = File(downloadsDir, "Spewboard").apply { mkdirs() }
             val destFile = File(appDir, "$cleanTitle.wav")
             sourceFile.copyTo(destFile, overwrite = true)
             MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), arrayOf("audio/wav"), null)
