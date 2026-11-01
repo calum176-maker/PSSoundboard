@@ -74,6 +74,10 @@ import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.components.PlayfulField
+import com.jms.pssoundboard.ui.components.SoftButton
+import com.jms.pssoundboard.ui.components.SpewButton
+import com.jms.pssoundboard.ui.theme.Surface1
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.FieldBackground
@@ -460,60 +464,43 @@ fun LiveDeckScreen(
         var newDeckTitle by remember { mutableStateOf("") }
         Dialog(onDismissRequest = { isAddingBoard = false }) {
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = SlateBackground,
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Teal.copy(alpha = 0.7f))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = Surface1
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "CREATE NEW SOUNDBOARD",
-                        color = Teal,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp
+                        text = "New deck",
+                        color = InkLight,
+                        fontFamily = BricolageCondensed,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 28.sp
                     )
-
-                    OutlinedTextField(
+                    PlayfulField(
                         value = newDeckTitle,
                         onValueChange = { newDeckTitle = it },
-                        label = { Text("Deck Name (e.g. Movie Quotes)") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = SlateText,
-                            unfocusedTextColor = SlateText,
-                            focusedBorderColor = Teal,
-                            unfocusedBorderColor = SlateOutline,
-                            focusedLabelColor = Teal,
-                            unfocusedLabelColor = SlateTextMuted
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        placeholder = "Deck name, like Movie Quotes"
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
-                            onClick = { isAddingBoard = false },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel", color = SlateTextMuted)
-                        }
-
-                        Button(
+                        SoftButton(text = "Cancel", onClick = { isAddingBoard = false }, light = false, modifier = Modifier.weight(1f))
+                        SpewButton(
+                            label = "Create deck",
+                            contentDescription = "Create deck",
                             onClick = {
                                 onAddBoard(newDeckTitle.ifBlank { "New Deck" })
                                 isAddingBoard = false
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
-                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1.2f)
-                        ) {
-                            Text("Create Deck", fontWeight = FontWeight.Bold)
-                        }
+                        )
                     }
                 }
             }
