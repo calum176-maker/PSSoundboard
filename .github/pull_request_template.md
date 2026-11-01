@@ -11,8 +11,8 @@ Roadmap item (if it adds or changes a feature, see ROADMAP.md): R
 ## How I tested it
 
 - [ ] CI build and lint pass
-- [ ] Tried it on a phone or the emulator (which one, and what you checked):
-- [ ] Landscape and a large font (1.3x), if it changes layout
+- [ ] Tried the PR's APK on my phone (which phone, and what I checked):
+- [ ] Needs an emulator check by @lt-flan (say what to check: landscape, large font, TalkBack, another Android version…):
 - [ ] Screenshots below, if it changes what people see
 
 ## For the reviewer
