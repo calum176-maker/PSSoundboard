@@ -1,5 +1,9 @@
 package com.jms.pssoundboard
 
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.tween
+import com.jms.pssoundboard.ui.screens.IntroSplash
 import java.time.LocalDate
 import androidx.activity.compose.rememberLauncherForActivityResult
 import com.jms.pssoundboard.ui.dialogs.FeedbackScreens
@@ -142,6 +146,7 @@ class MainActivity : ComponentActivity() {
     ) { startOverlay() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -154,12 +159,24 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
 
+        // The branded intro plays on a fresh start only, not after rotation or returning to the app.
+        val freshStart = savedInstanceState == null
         setContent {
             PSSoundboardTheme {
-                MainScreen(
-                    viewModel = viewModel,
-                    onLaunchOverlay = { toggleFloatingOverlay() }
-                )
+                var showIntro by rememberSaveable { mutableStateOf(freshStart) }
+                Box {
+                    MainScreen(
+                        viewModel = viewModel,
+                        onLaunchOverlay = { toggleFloatingOverlay() }
+                    )
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showIntro,
+                        enter = EnterTransition.None,
+                        exit = fadeOut(tween(300))
+                    ) {
+                        IntroSplash(onFinished = { showIntro = false })
+                    }
+                }
             }
         }
     }
