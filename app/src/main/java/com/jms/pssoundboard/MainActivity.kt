@@ -92,7 +92,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.jms.pssoundboard.data.LibraryItem
@@ -340,7 +339,7 @@ fun MainScreen(
                         Text(
                             text = "Synthesizing zero-latency audio engine…",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -446,8 +445,7 @@ fun MainScreen(
                         Text(
                             text = busyMessage ?: "",
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            style = MaterialTheme.typography.labelMedium
                         )
                     }
                 }
@@ -560,9 +558,7 @@ private fun TopStatusBar(
                 text = if (loopbackConnected) "Loopback cable in: spews go to your voice chat"
                 else "Speaker mode: plug in the loopback cable to spew into voice chat",
                 color = statusColour,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 16.sp,
+                style = MaterialTheme.typography.labelMedium,
                 maxLines = 2
             )
         }
@@ -625,7 +621,7 @@ private fun BottomNavBar(
                 Text(
                     text = label,
                     color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1
                 )
@@ -712,8 +708,7 @@ private fun SideNavRail(
                 Text(
                     text = label,
                     color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1
                 )

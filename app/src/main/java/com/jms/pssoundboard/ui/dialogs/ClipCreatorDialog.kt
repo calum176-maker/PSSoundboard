@@ -185,13 +185,13 @@ fun ClipCreatorDialog(
                             text = "CLIP CREATOR & RECORDER",
                             color = MaterialTheme.spew.accent,
                             fontWeight = FontWeight.Black,
-                            fontSize = 17.sp,
+                            style = MaterialTheme.typography.titleMedium,
                             letterSpacing = 0.8.sp
                         )
                         Text(
                             text = "Record phone mic or trim any audio file (max 10s)",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
@@ -203,7 +203,7 @@ fun ClipCreatorDialog(
                             .clickable { onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
@@ -247,7 +247,7 @@ fun ClipCreatorDialog(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("● RECORD MIC", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("● RECORD MIC", style = MaterialTheme.typography.labelSmall)
                         }
                     } else {
                         Button(
@@ -259,7 +259,7 @@ fun ClipCreatorDialog(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("■ STOP RECORDING", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("■ STOP RECORDING", style = MaterialTheme.typography.labelSmall)
                         }
                     }
 
@@ -271,7 +271,7 @@ fun ClipCreatorDialog(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("📂 IMPORT AUDIO", fontSize = 12.sp)
+                        Text("📂 IMPORT AUDIO", style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -292,14 +292,12 @@ fun ClipCreatorDialog(
                             Text(
                                 text = "RECORDING (Phone Built-in Mic)",
                                 color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                style = MaterialTheme.typography.labelSmall
                             )
                             Text(
                                 text = String.format("%.1f s / 10.0 s", recordElapsedMs / 1000f),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
 
@@ -318,7 +316,7 @@ fun ClipCreatorDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
-                            Text("Mic Level:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                            Text("Mic Level:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                             LinearProgressIndicator(
                                 progress = { currentMicLevel.coerceIn(0f, 1f) },
                                 modifier = Modifier
@@ -342,7 +340,7 @@ fun ClipCreatorDialog(
                         Text(
                             text = " Decoding audio track to mono PCM…",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -365,8 +363,7 @@ fun ClipCreatorDialog(
                             Text(
                                 text = "WAVEFORM & TRIM",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.labelSmall,
                             )
                             Text(
                                 text = String.format(
@@ -375,8 +372,7 @@ fun ClipCreatorDialog(
                                     max(0f, trimRange.endInclusive - trimRange.start)
                                 ),
                                 color = MaterialTheme.colorScheme.secondary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.labelSmall,
                             )
                         }
 
@@ -421,13 +417,12 @@ fun ClipCreatorDialog(
                             Text(
                                 text = "Normalize Peak (-1 dBFS)",
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                style = MaterialTheme.typography.labelSmall
                             )
                             Text(
                                 text = "Boosts loudness cleanly for the loopback cable",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
                         Switch(
@@ -461,8 +456,7 @@ fun ClipCreatorDialog(
                         Text(
                             text = "Target Deck:",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.labelSmall,
                         )
 
                         LazyRow(
@@ -482,7 +476,7 @@ fun ClipCreatorDialog(
                                     Text(
                                         text = board.name,
                                         color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 11.sp,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
@@ -497,8 +491,7 @@ fun ClipCreatorDialog(
                             Text(
                                 text = "Pad Slot (1 - 12):",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.labelSmall,
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 (0 until 12).forEach { slot ->
@@ -515,8 +508,7 @@ fun ClipCreatorDialog(
                                         Text(
                                             text = "${slot + 1}",
                                             color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
+                                            style = MaterialTheme.typography.labelSmall,
                                         )
                                     }
                                 }
@@ -545,7 +537,7 @@ fun ClipCreatorDialog(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("▶ PREVIEW", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("▶ PREVIEW", style = MaterialTheme.typography.labelSmall)
                         }
 
                         Button(
@@ -566,8 +558,7 @@ fun ClipCreatorDialog(
                         ) {
                             Text(
                                 text = "SAVE → $targetBoardName #${targetSlot + 1}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

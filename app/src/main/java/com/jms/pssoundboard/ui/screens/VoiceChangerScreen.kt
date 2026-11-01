@@ -64,13 +64,13 @@ import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoicePreset
 import com.jms.pssoundboard.ui.components.CapsuleShape
+import com.jms.pssoundboard.ui.components.PadLabel
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.PlayfulHeader
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.theme.BlobShape
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.DriveColour
 import com.jms.pssoundboard.ui.theme.EchoColour
 import com.jms.pssoundboard.ui.theme.GainColour
@@ -81,6 +81,7 @@ import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.PresetColours
 import com.jms.pssoundboard.ui.theme.RecordHalo
 import com.jms.pssoundboard.ui.theme.RobotColour
+import com.jms.pssoundboard.ui.theme.condensed
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.rememberReducedMotion
@@ -174,7 +175,7 @@ fun VoiceChangerScreen(
                     leadingIcon = PlayfulIcons.Library
                 )
                 if (filteredPresets.isEmpty()) {
-                    Text("No effects match \"$searchQuery\".", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text("No effects match \"$searchQuery\".", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 }
                 filteredPresets.chunked(4).forEach { row ->
                     Row(
@@ -223,7 +224,7 @@ fun VoiceChangerScreen(
                 Text(
                     text = String.format(Locale.UK, "%.1f of %.0f seconds", if (isRecording) recordElapsedMs / 1000f else 0f, MAX_RECORD_SECONDS),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodyMedium
                 )
 
                 AnimatedVisibility(visible = isRecording) {
@@ -234,7 +235,7 @@ fun VoiceChangerScreen(
                     Text(
                         text = "Records up to 10 seconds, then adds the effect. It is not live.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -243,7 +244,7 @@ fun VoiceChangerScreen(
                     Text(
                         text = "Microphone access is off. Allow it when asked, or in Settings › Apps › Spewboard › Permissions.",
                         color = MaterialTheme.colorScheme.tertiary,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -253,8 +254,7 @@ fun VoiceChangerScreen(
                     Text(
                         text = String.format(Locale.UK, "Ready: %.1f seconds with the effect", samples.size.toFloat() / ClipRecorder.SAMPLE_RATE),
                         color = MaterialTheme.spew.ready,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        style = MaterialTheme.typography.labelMedium
                     )
                 }
 
@@ -305,9 +305,9 @@ fun VoiceChangerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Fine-tune", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, fontFamily = BricolageCondensed)
+                    Text("Fine-tune", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
                     if (activePresetId == VoiceFxParams.CUSTOM_ID) {
-                        Text(text = "(Preset: Customized)", color = MaterialTheme.colorScheme.tertiary, fontSize = 12.sp)
+                        Text(text = "(Preset: Customized)", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -373,7 +373,7 @@ fun VoiceChangerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(if (showMore) "Less" else "More", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(if (showMore) "Less" else "More", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                     Icon(
                         imageVector = PlayfulIcons.ChevronDown,
                         contentDescription = null,
@@ -391,8 +391,8 @@ fun VoiceChangerScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Radio filter", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("Walkie-talkie band-pass", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text("Radio filter", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
+                                Text("Walkie-talkie band-pass", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                             }
                             Switch(
                                 checked = voiceFxParams.radio,
@@ -466,11 +466,9 @@ fun VoiceChangerScreen(
                 Text(
                     text = "Save to the Vault",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 24.sp
+                    style = MaterialTheme.typography.headlineSmall
                 )
-                Text("Clip name", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Clip name", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 PlayfulField(
                     value = clipTitle,
                     onValueChange = { clipTitle = it },
@@ -517,15 +515,12 @@ private fun PresetBlob(
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
+        PadLabel(
             text = preset.label,
-            color = inkOn(colour),
-            fontWeight = FontWeight.Bold,
-            fontFamily = BricolageCondensed,
-            fontSize = 14.sp,
-            lineHeight = 14.sp,
+            style = MaterialTheme.typography.labelMedium.condensed(FontWeight.Bold)
+                .copy(color = inkOn(colour), textAlign = TextAlign.Center),
             maxLines = 2,
-            textAlign = TextAlign.Center
+            minFontSize = 9.sp
         )
     }
 }
@@ -577,9 +572,7 @@ private fun RecordBlob(
             Text(
                 text = if (isRecording) "Stop" else "Tap to record",
                 color = MaterialTheme.spew.onBlob,
-                fontFamily = BricolageCondensed,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 18.sp
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }
@@ -606,7 +599,7 @@ private fun LevelMeter(level: Float) {
                     .background(MaterialTheme.colorScheme.primary)
             )
         }
-        Text("Mic level", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Mic level", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -627,7 +620,7 @@ private fun ActionPill(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.spew.disabled, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(text, color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.spew.disabled, style = MaterialTheme.typography.labelMedium)
     }
 }
 
@@ -648,7 +641,7 @@ private fun ParamSlider(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.width(labelWidth))
+        Text(label, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(labelWidth))
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -668,8 +661,7 @@ private fun ParamSlider(
         Text(
             valueText,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.End,
             modifier = Modifier.width(56.dp)
         )

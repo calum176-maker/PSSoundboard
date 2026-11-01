@@ -38,8 +38,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.jms.pssoundboard.ui.theme.Bricolage
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.PadPalette
 import com.jms.pssoundboard.ui.theme.PadShape
@@ -74,14 +72,11 @@ fun PlayfulHeader(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(eyebrow, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(eyebrow, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = BricolageCondensed,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 38.sp,
-                lineHeight = 36.sp,
+                style = MaterialTheme.typography.displaySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -124,7 +119,7 @@ fun BlobChip(
         Text(
             text = text,
             color = ink,
-            fontSize = 15.sp,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = if (selected || colour != null) FontWeight.Bold else FontWeight.SemiBold,
             maxLines = 1
         )
@@ -149,7 +144,7 @@ fun SpewButton(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = MaterialTheme.spew.onBlob, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+        Text(label, color = MaterialTheme.spew.onBlob, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -235,13 +230,13 @@ fun PlayfulField(
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             if (value.isEmpty()) {
-                Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontFamily = Bricolage, fontSize = 17.sp, fontWeight = FontWeight.Medium),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -272,8 +267,8 @@ fun StatusCard(
     ) {
         art()
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleSmall)
+            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
         action?.invoke()
     }
@@ -296,7 +291,7 @@ fun SoftButton(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (light) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Text(text, color = if (light) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
     }
 }
 

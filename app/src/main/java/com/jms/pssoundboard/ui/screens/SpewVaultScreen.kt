@@ -39,11 +39,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.model.SpewEntry
 import com.jms.pssoundboard.data.model.VaultSortOrder
@@ -56,7 +54,6 @@ import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PinStar
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
@@ -135,7 +132,7 @@ fun SpewVaultScreen(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Clear all", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Clear all", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -191,8 +188,7 @@ fun SpewVaultScreen(
                 Text(
                     text = "${selectedEntryIds.size} selected",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.weight(1f)
                 )
                 IconBlobButton(
@@ -288,7 +284,7 @@ fun SpewVaultScreen(
                 Text(
                     text = "No clips match “$searchQuery”",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -372,9 +368,7 @@ private fun VaultRow(
                 Text(
                     text = "×${entry.spewCount}",
                     color = ink,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 17.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1
                 )
             }
@@ -401,9 +395,7 @@ private fun VaultRow(
                 Text(
                     text = entry.title,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    lineHeight = 19.sp,
+                    style = MaterialTheme.typography.titleSmall,
                     // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
                     maxLines = if (isScrollingTitle) 1 else 2,
                     overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
@@ -432,7 +424,7 @@ private fun VaultRow(
             Text(
                 text = "${entry.category} · ${entry.formattedLastSpewed().replaceFirstChar { it.lowercase() }}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -509,7 +501,7 @@ private fun VaultMenuItem(
     onClick: () -> Unit,
 ) {
     DropdownMenuItem(
-        text = { Text(text, color = colour, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) },
+        text = { Text(text, color = colour, style = MaterialTheme.typography.labelLarge) },
         leadingIcon = { Icon(icon, contentDescription = null, tint = colour, modifier = Modifier.size(18.dp)) },
         onClick = onClick
     )

@@ -57,7 +57,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,11 +75,12 @@ import com.jms.pssoundboard.data.SoundRepository
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
+import com.jms.pssoundboard.ui.components.PadLabel
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.PSSoundboardTheme
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
+import com.jms.pssoundboard.ui.theme.condensed
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.padColour
@@ -660,19 +660,15 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                PadLabel(
                     text = pad.title,
-                    color = ink,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp,
-                    lineHeight = 16.sp,
+                    style = MaterialTheme.typography.labelLarge.condensed()
+                        .copy(color = ink, textAlign = TextAlign.Center),
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    minFontSize = 10.sp
                 )
                 if (isHold) {
-                    Text(text = "Hold", color = ink, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Hold", color = ink, style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -689,7 +685,11 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 .semantics { contentDescription = "Empty mini-deck slot" },
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Empty", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = BricolageCondensed, fontSize = 14.sp)
+            Text(
+                text = "Empty",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium.condensed(FontWeight.Normal)
+            )
         }
     }
 
@@ -717,9 +717,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
             Text(
                 text = "Stop",
                 color = MaterialTheme.spew.onBlob,
-                fontFamily = BricolageCondensed,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 17.sp
+                style = MaterialTheme.typography.titleMedium
             )
         }
     }
@@ -744,8 +742,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
             Text(
                 text = if (active) "Let go to close" else "Drop here to close",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))

@@ -5,7 +5,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.gummy
@@ -51,7 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.Pad
@@ -105,14 +103,12 @@ fun PadEditorDialog(
                         Text(
                             text = "Edit pad ${pad.slot + 1}",
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = BricolageCondensed,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 28.sp
+                            style = MaterialTheme.typography.headlineMedium
                         )
                         Text(
                             text = "Deck: $boardName",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
@@ -146,8 +142,7 @@ fun PadEditorDialog(
                 Text(
                     text = "PLAYBACK TRIGGER MODE",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall,
                 )
 
                 ExposedDropdownMenuBox(
@@ -179,7 +174,7 @@ fun PadEditorDialog(
                                 text = {
                                     Column {
                                         Text(mode.label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-                                        Text(mode.description, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                        Text(mode.description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                                     }
                                 },
                                 onClick = {
@@ -195,8 +190,7 @@ fun PadEditorDialog(
                 Text(
                     text = "PAD COLOR ACCENT",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall,
                 )
 
                 Row(
@@ -220,8 +214,7 @@ fun PadEditorDialog(
                 Text(
                     text = "SHAPE",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall,
                 )
 
                 Row(
@@ -256,8 +249,7 @@ fun PadEditorDialog(
                 Text(
                     text = "ASSIGNED SOUND CLIP",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall,
                 )
 
                 Row(
@@ -296,7 +288,7 @@ fun PadEditorDialog(
                             SynthTestClipsGenerator.CLIPS.forEach { builtin ->
                                 DropdownMenuItem(
                                     text = {
-                                        Text("Synth: ${builtin.title}", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                                        Text("Synth: ${builtin.title}", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodySmall)
                                     },
                                     onClick = {
                                         currentFilePath = builtinClipResolver(builtin.id)
@@ -317,7 +309,7 @@ fun PadEditorDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, contentColor = MaterialTheme.colorScheme.onSurface),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Test", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Test", style = MaterialTheme.typography.labelMedium)
                     }
 
                     Button(
@@ -348,13 +340,12 @@ fun PadEditorDialog(
                         Text(
                             text = "Pin to Mini-Deck Overlay",
                             color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            style = MaterialTheme.typography.labelMedium
                         )
                         Text(
                             text = "Shows in the floating mini-deck over your voice chat app",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                     Switch(
@@ -383,7 +374,7 @@ fun PadEditorDialog(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Clear Pad", fontSize = 12.sp)
+                        Text("Clear Pad", style = MaterialTheme.typography.bodySmall)
                     }
 
                     Button(
@@ -401,7 +392,7 @@ fun PadEditorDialog(
                         shape = RoundedCornerShape(22.dp),
                         modifier = Modifier.weight(1.3f)
                     ) {
-                        Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Save Changes", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

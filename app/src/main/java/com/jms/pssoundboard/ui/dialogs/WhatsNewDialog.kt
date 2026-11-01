@@ -16,15 +16,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.WhatsNewRelease
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
-import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.gummy
 
 /**
@@ -49,11 +46,9 @@ fun WhatsNewDialog(version: String, releases: List<WhatsNewRelease>, onDismiss: 
                     Text(
                         text = "What's new",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontFamily = BricolageCondensed,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 28.sp
+                        style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Spewboard v$version", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text("Spewboard v$version", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
                 Column(
                     modifier = Modifier
@@ -67,8 +62,7 @@ fun WhatsNewDialog(version: String, releases: List<WhatsNewRelease>, onDismiss: 
                             Text(
                                 text = "v${release.version}",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(top = if (index == 0) 0.dp else 6.dp)
                             )
                         }
@@ -81,7 +75,7 @@ fun WhatsNewDialog(version: String, releases: List<WhatsNewRelease>, onDismiss: 
                                         .size(width = 14.dp, height = 13.dp)
                                         .gummy(blobColourFor(item), blobShapeFor(item))
                                 )
-                                Text(item, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 20.sp)
+                                Text(item, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
