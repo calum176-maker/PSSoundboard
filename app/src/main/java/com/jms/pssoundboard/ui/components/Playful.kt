@@ -1,5 +1,10 @@
 package com.jms.pssoundboard.ui.components
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -302,7 +306,8 @@ fun SoftButton(
 
 /**
  * A pad name that shrinks to fit rather than splitting a word across lines (at large font sizes
- * or on narrow pads). It gets at most one line per word, so a long single word can only shrink.
+ * or on narrow pads). It uses the largest size, down to [minFontSize], at which every word fits on
+ * a line and the whole name fits in [maxLines]; only if even that fails does it end with "…".
  */
 @Composable
 fun PadLabel(
@@ -312,15 +317,41 @@ fun PadLabel(
     modifier: Modifier = Modifier,
     minFontSize: TextUnit = 9.sp,
 ) {
-    val words = text.trim().split(WhitespaceRegex).size
-    BasicText(
-        text = text,
-        modifier = modifier,
-        style = LocalTextStyle.current.merge(style),
-        maxLines = minOf(maxLines, words),
-        overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize, stepSize = 0.5.sp)
-    )
+    val merged = LocalTextStyle.current.merge(style)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val width = constraints.maxWidth
+        val fontSize = remember(text, merged, width, maxLines) {
+            fittedFontSize(measurer, text, merged, width, maxLines, minFontSize.value)
+        }
+        BasicText(
+            text = text,
+            style = merged.copy(fontSize = fontSize.sp),
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+private fun fittedFontSize(
+    measurer: TextMeasurer,
+    text: String,
+    style: TextStyle,
+    maxWidth: Int,
+    maxLines: Int,
+    minSize: Float,
+): Float {
+    val words = text.trim().split(WhitespaceRegex).filter { it.isNotEmpty() }
+    var size = style.fontSize.value
+    if (maxWidth == Constraints.Infinity || words.isEmpty()) return size
+    while (size > minSize) {
+        val sized = style.copy(fontSize = size.sp)
+        val widestWord = words.maxOf { measurer.measure(it, sized, softWrap = false, maxLines = 1).size.width }
+        val whole = measurer.measure(text, sized, maxLines = maxLines, constraints = Constraints(maxWidth = maxWidth))
+        if (widestWord <= maxWidth && !whole.hasVisualOverflow) break
+        size -= 0.5f
+    }
+    return size.coerceAtLeast(minSize)
 }
 
 private val WhitespaceRegex = Regex("\\s+")
