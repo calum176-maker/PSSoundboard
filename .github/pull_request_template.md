@@ -4,6 +4,7 @@ Start it with CI:, Build: or Docs: if testers won't notice the change.
 -->
 
 Closes #
+Roadmap item (if it adds or changes a feature, see ROADMAP.md): R
 
 ## What and why
 
