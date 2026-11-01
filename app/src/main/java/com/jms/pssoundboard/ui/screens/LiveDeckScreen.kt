@@ -29,10 +29,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -111,6 +114,7 @@ fun LiveDeckScreen(
     val activeBoard = deckState.activeBoard ?: return
     var managingBoard by remember { mutableStateOf<Board?>(null) }
     var isAddingBoard by remember { mutableStateOf(false) }
+    var boardSelectorExpanded by remember { mutableStateOf(false) }
     // While on, tapping a pad opens its editor instead of playing it, so holding a pad only ever plays.
     var editingPads by rememberSaveable { mutableStateOf(false) }
 
@@ -119,32 +123,149 @@ fun LiveDeckScreen(
         pad.filePath != null && PadRef(activeBoard.id, pad.slot) in deckState.favorites
     }?.slot
 
-    // Keep the selected deck's chip in view, e.g. after switching decks from the mini-deck.
-    val chipListState = rememberLazyListState()
-    val activeIndex = deckState.boards.indexOfFirst { it.id == activeBoard.id }
-    LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0) chipListState.animateScrollToItem(activeIndex)
-    }
-
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     @Composable
-    fun DeckName(titleSize: TextUnit, modifier: Modifier = Modifier) {
-        Column(
-            modifier = modifier.padding(start = 4.dp, top = 2.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
-            Text(
-                text = activeBoard.name,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontFamily = BricolageCondensed,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = titleSize,
-                lineHeight = titleSize * 0.95f,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+    fun DeckSelector(titleSize: TextUnit, modifier: Modifier = Modifier) {
+        Box(modifier = modifier) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = "Change or manage soundboard"
+                    ) { boardSelectorExpanded = true }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        "Spew Deck",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = activeBoard.name,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = BricolageCondensed,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = titleSize,
+                            lineHeight = titleSize * 0.95f,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Icon(
+                            imageVector = PlayfulIcons.ChevronDown,
+                            contentDescription = "Select soundboard",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            DropdownMenu(
+                expanded = boardSelectorExpanded,
+                onDismissRequest = { boardSelectorExpanded = false },
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .width(260.dp)
+            ) {
+                Text(
+                    text = "SOUNDBOARDS",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+                deckState.boards.forEach { board ->
+                    val isActive = board.id == activeBoard.id
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = if (isActive) "✓  ${board.name}" else "    ${board.name}",
+                                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "${board.pads.count { it.filePath != null }} sounds",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        boardSelectorExpanded = false
+                                        managingBoard = board
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PlayfulIcons.Edit,
+                                    contentDescription = "Manage ${board.name}",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        },
+                        onClick = {
+                            boardSelectorExpanded = false
+                            onSelectBoard(board.id)
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                        .padding(vertical = 4.dp)
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "+ Create new soundboard",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = PlayfulIcons.Plus,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        boardSelectorExpanded = false
+                        isAddingBoard = true
+                    }
+                )
+            }
         }
     }
 
@@ -155,75 +276,17 @@ fun LiveDeckScreen(
         val toggle = @Composable { EditPadsToggle(editing = editingPads, onToggle = { editingPads = !editingPads }) }
         if (toggleOnOwnRow) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DeckName(titleSize)
+                DeckSelector(titleSize)
                 toggle()
             }
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                DeckName(titleSize, Modifier.weight(1f))
+                DeckSelector(titleSize, Modifier.weight(1f, fill = false))
                 toggle()
-            }
-        }
-    }
-
-    @Composable
-    fun DeckChips() {
-        LazyRow(
-            state = chipListState,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items(deckState.boards, key = { it.id }) { board ->
-                val isActive = board.id == activeBoard.id
-                Row(
-                    modifier = Modifier
-                        .height(44.dp)
-                        .clip(ChipBlob)
-                        .background(if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
-                            if (isActive) managingBoard = board else onSelectBoard(board.id)
-                        }
-                        .padding(start = 16.dp, end = if (isActive) 7.dp else 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = board.name,
-                        color = if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1
-                    )
-                    if (isActive) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(PlayfulIcons.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(15.dp))
-                        }
-                    }
-                }
-            }
-            item(key = "add_deck") {
-                Box(
-                    modifier = Modifier
-                        .size(width = 48.dp, height = 44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable(onClickLabel = "Add a deck") { isAddingBoard = true }
-                        .semantics { contentDescription = "Add a deck" },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(PlayfulIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-                }
             }
         }
     }
@@ -276,7 +339,6 @@ fun LiveDeckScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DeckTitle(30.sp, toggleOnOwnRow = true)
-                    DeckChips()
                     Spacer(modifier = Modifier.weight(1f))
                     VolumePill()
                 }
@@ -303,7 +365,6 @@ fun LiveDeckScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 DeckTitle(38.sp, toggleOnOwnRow = false)
-                DeckChips()
                 PadGrid(
                     board = activeBoard,
                     deckState = deckState,
@@ -431,7 +492,7 @@ fun LiveDeckScreen(
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Clear All 12 Pads", style = MaterialTheme.typography.bodySmall)
+                            Text("Clear All Pads", style = MaterialTheme.typography.bodySmall)
                         }
 
                         OutlinedButton(
@@ -514,7 +575,11 @@ fun LiveDeckScreen(
     }
 }
 
-/** 3-column pad grid; with a favourite, it takes a double-size cell in the top-left corner. */
+/**
+ * Scrollable pad grid with no limit on cards:
+ * 3 columns in portrait (or 4 columns in landscape) showing every card on the soundboard.
+ * The active favorite card (if any) spans across 2 columns as a hero card.
+ */
 @Composable
 private fun PadGrid(
     board: Board,
@@ -529,65 +594,53 @@ private fun PadGrid(
     modifier: Modifier = Modifier,
 ) {
     val gap = 8.dp
+    val columnsCount = if (landscape) 4 else 3
+    val gridState = rememberLazyGridState()
 
-    @Composable
-    fun Cell(slot: Int, hero: Boolean, cellModifier: Modifier) {
-        val pad = board.pads.getOrNull(slot) ?: Pad(slot = slot)
-        val padRef = PadRef(board.id, slot)
-        key(padRef.key) {
+    // Determine the list of pads to display (all pads in the board, or default 12 if empty)
+    val displayPads = if (board.pads.isEmpty()) {
+        List(PADS_PER_BOARD) { Pad(slot = it) }
+    } else {
+        board.pads
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columnsCount),
+        state = gridState,
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalArrangement = Arrangement.spacedBy(gap),
+        contentPadding = PaddingValues(bottom = 8.dp)
+    ) {
+        items(
+            items = displayPads,
+            key = { pad -> "${board.id}:${pad.slot}" },
+            span = { pad ->
+                if (pad.slot == heroSlot && !landscape) {
+                    GridItemSpan(2)
+                } else {
+                    GridItemSpan(1)
+                }
+            }
+        ) { pad ->
+            val padRef = PadRef(board.id, pad.slot)
+            val isHero = pad.slot == heroSlot && !landscape
+            val cellHeight = if (isHero) 180.dp else 104.dp
+
             TactilePad(
                 padRef = padRef,
                 pad = pad,
                 isFavorite = padRef in deckState.favorites,
                 isPlaying = padRef.key in playingPads,
-                isHero = hero,
+                isHero = isHero,
                 editing = editingPads,
                 onPress = { onPressPad(padRef, pad) },
                 onRelease = { onReleasePad(padRef, pad) },
                 onEdit = { onEditPad(board.id, pad) },
-                modifier = cellModifier
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(cellHeight)
             )
-        }
-    }
-
-    if (landscape) {
-        // 6 x 2; a favourite becomes a tall pad on the left (normal styling: the column is narrow).
-        val others = (0 until PADS_PER_BOARD).filter { it != heroSlot }
-        Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(gap)) {
-            if (heroSlot != null) Cell(heroSlot, false, Modifier.weight(1f).fillMaxHeight())
-            Column(Modifier.weight(6f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
-                others.chunked(6).forEach { rowSlots ->
-                    Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                        rowSlots.forEach { Cell(it, false, Modifier.weight(1f).fillMaxHeight()) }
-                        repeat(6 - rowSlots.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
-            }
-        }
-        return
-    }
-
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
-        if (heroSlot == null) {
-            for (row in 0 until 4) {
-                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    for (col in 0 until 3) Cell(row * 3 + col, false, Modifier.weight(1f).fillMaxHeight())
-                }
-            }
-        } else {
-            val others = (0 until PADS_PER_BOARD).filter { it != heroSlot }
-            Row(Modifier.weight(2f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                Cell(heroSlot, true, Modifier.weight(2f).fillMaxHeight())
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
-                    Cell(others[0], false, Modifier.weight(1f).fillMaxWidth())
-                    Cell(others[1], false, Modifier.weight(1f).fillMaxWidth())
-                }
-            }
-            others.drop(2).chunked(3).forEach { rowSlots ->
-                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    rowSlots.forEach { Cell(it, false, Modifier.weight(1f).fillMaxHeight()) }
-                }
-            }
         }
     }
 }
