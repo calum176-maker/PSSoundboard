@@ -1,16 +1,6 @@
 package com.jms.pssoundboard.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -57,17 +45,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.core.content.ContextCompat
 import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoicePreset
 import com.jms.pssoundboard.ui.components.CapsuleShape
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.PlayfulHeader
+import com.jms.pssoundboard.ui.components.RecordPanel
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
-import com.jms.pssoundboard.ui.theme.BlobShape
 import com.jms.pssoundboard.ui.theme.DriveColour
 import com.jms.pssoundboard.ui.theme.EchoColour
 import com.jms.pssoundboard.ui.theme.GainColour
@@ -76,17 +63,13 @@ import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PitchColour
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.PresetColours
-import com.jms.pssoundboard.ui.theme.RecordHalo
 import com.jms.pssoundboard.ui.theme.RobotColour
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
-import com.jms.pssoundboard.ui.theme.rememberReducedMotion
 import com.jms.pssoundboard.ui.theme.spew
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.PI
-import kotlin.math.sin
 
 private fun presetColour(preset: VoicePreset): Color = PresetColours[preset.id] ?: blobColourFor(preset.id)
 
@@ -122,9 +105,6 @@ fun VoiceChangerScreen(
         else VoicePreset.entries.filter { it.label.contains(searchQuery, ignoreCase = true) || it.id.contains(searchQuery, ignoreCase = true) }
     }
 
-    val context = LocalContext.current
-    var micDenied by remember { mutableStateOf(false) }
-
     // Recording failures are reported by the ViewModel, which returns an empty array.
     fun startRecording() {
         val stop = AtomicBoolean(false)
@@ -138,13 +118,6 @@ fun VoiceChangerScreen(
             isRecording = false
             if (samples.isNotEmpty()) lastProcessedSamples = samples
         }
-    }
-
-    val micPermLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        micDenied = !granted
-        if (granted) startRecording()
     }
 
     val effectName = VoicePreset.byId(activePresetId)?.label
@@ -199,51 +172,19 @@ fun VoiceChangerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                RecordBlob(
+                RecordPanel(
                     isRecording = isRecording,
-                    contentDescription = if (isRecording) "Stop recording"
-                    else "Start recording with the $effectName effect",
-                    onClick = {
-                        if (!isRecording) {
-                            val hasPerm = ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.RECORD_AUDIO
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (hasPerm) startRecording()
-                            else micPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        } else {
-                            stopRecordFlag?.set(true)
-                            isRecording = false
-                        }
-                    }
+                    elapsedMs = recordElapsedMs,
+                    micLevel = currentMicLevel,
+                    maxSeconds = MAX_RECORD_SECONDS,
+                    startDescription = "Start recording with the $effectName effect",
+                    onStart = { startRecording() },
+                    onStop = {
+                        stopRecordFlag?.set(true)
+                        isRecording = false
+                    },
+                    idleHint = "Records up to 10 seconds, then adds the effect. It is not live."
                 )
-
-                Text(
-                    text = String.format(Locale.UK, "%.1f of %.0f seconds", if (isRecording) recordElapsedMs / 1000f else 0f, MAX_RECORD_SECONDS),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                AnimatedVisibility(visible = isRecording) {
-                    LevelMeter(level = currentMicLevel)
-                }
-
-                if (!isRecording) {
-                    Text(
-                        text = "Records up to 10 seconds, then adds the effect. It is not live.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                if (micDenied && !isRecording) {
-                    Text(
-                        text = "Microphone access is off. Allow it when asked, or in Settings › Apps › Spewboard › Permissions.",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
 
                 val samples = lastProcessedSamples
                 if (samples != null && !isRecording) {
@@ -518,84 +459,6 @@ private fun PresetBlob(
             maxLines = 2,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-/** The big red record button. Wobbles gently while idle unless the user has turned animations off. */
-@Composable
-private fun RecordBlob(
-    isRecording: Boolean,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    val reducedMotion = rememberReducedMotion()
-    val phase = if (reducedMotion || isRecording) {
-        0f
-    } else {
-        val transition = rememberInfiniteTransition(label = "record_wobble")
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(3200, easing = LinearEasing), RepeatMode.Restart),
-            label = "record_wobble_phase"
-        ).value
-    }
-    val shape = remember(phase) {
-        val a = (2 * PI * phase).toFloat()
-        fun w(offset: Float) = 0.06f * sin(a + offset)
-        BlobShape(
-            floatArrayOf(.58f + w(0f), .42f - w(0f), .52f + w(2f), .48f - w(2f)),
-            floatArrayOf(.50f + w(1f), .56f - w(1f), .44f + w(3f), .50f - w(3f)),
-        )
-    }
-    Box(
-        modifier = Modifier
-            .size(width = 170.dp, height = 160.dp)
-            .border(10.dp, RecordHalo, shape)
-            .padding(10.dp)
-            .gummy(MaterialTheme.colorScheme.error, shape)
-            .clickable(role = Role.Button, onClickLabel = contentDescription, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(
-                imageVector = if (isRecording) PlayfulIcons.Stop else PlayfulIcons.Mic,
-                contentDescription = null,
-                tint = MaterialTheme.spew.onBlob,
-                modifier = Modifier.size(34.dp)
-            )
-            Text(
-                text = if (isRecording) "Stop" else "Tap to record",
-                color = MaterialTheme.spew.onBlob,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
-
-/** Live microphone level while recording. */
-@Composable
-private fun LevelMeter(level: Float) {
-    val clamped = level.coerceIn(0f, 1f)
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(
-            modifier = Modifier
-                .width(180.dp)
-                .height(10.dp)
-                .clip(RoundedCornerShape(5.dp))
-                .background(MaterialTheme.spew.field)
-                .semantics { contentDescription = String.format(Locale.UK, "Microphone level %.0f percent", clamped * 100f) }
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(clamped)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-        }
-        Text("Mic level", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
     }
 }
 
