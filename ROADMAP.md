@@ -38,7 +38,7 @@ Everything below gets judged against it._
 | R9 | **Keep playing sounds unlimited** and charge for extras (custom uploads, more decks, game profiles) instead of a 20 plays a day cap. A soundboard gets spammed, so 20 plays is about ten minutes of chat. | AJ | 1 Nov 2026 | Proposed | | |
 | R10 | **If there are ads, keep them out of voice chat:** mute ads completely, or show none while the cable is plugged in. The cable is the headphone socket, so ad audio would go straight into the chat. | AJ | 1 Nov 2026 | Proposed | | |
 | R11 | **Share the original MP3 instead of the converted WAV.** The WAV is about ten times bigger, and WhatsApp may send it as a document rather than a playable clip (needs a check on a real phone). | AJ | 1 Nov 2026 | Proposed | | |
-| R12 | **Wording and copy audit** across the app. | Steve | Nov 2026 | Proposed | | #3 |
+| R12 | **Wording and copy audit** across the app. | Steve | 1 Nov 2026 | Approved | Calum, 👍 on the proposal on #3, 1 Nov. Split into #31 to #35; #31 (error messages) done in #40. | #3, #31 to #35 |
 
 ## Statuses
 
