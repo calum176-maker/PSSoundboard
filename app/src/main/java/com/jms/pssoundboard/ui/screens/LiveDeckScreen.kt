@@ -34,6 +34,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.shape.CircleShape
@@ -50,6 +52,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -120,10 +123,25 @@ fun LiveDeckScreen(
     // While on, tapping a pad opens its editor instead of playing it, so holding a pad only ever plays.
     var editingPads by rememberSaveable { mutableStateOf(false) }
 
-    // The first favourite on this deck that has a sound becomes the double-size hero pad.
-    val heroSlot = activeBoard.pads.firstOrNull { pad ->
-        pad.filePath != null && PadRef(activeBoard.id, pad.slot) in deckState.favorites
-    }?.slot
+    val activeIndex = deckState.boards.indexOfFirst { it.id == activeBoard.id }.coerceAtLeast(0)
+    val pagerState = rememberPagerState(initialPage = activeIndex) { deckState.boards.size }
+    val currentBoard = deckState.boards.getOrNull(pagerState.currentPage) ?: activeBoard
+
+    // Keep pager synchronized when activeBoardId changes externally (e.g. from dropdown or mini-deck)
+    LaunchedEffect(activeBoard.id, deckState.boards.size) {
+        val targetIndex = deckState.boards.indexOfFirst { it.id == activeBoard.id }
+        if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+            pagerState.animateScrollToPage(targetIndex)
+        }
+    }
+
+    // Keep active board in ViewModel synchronized when user swipes to another deck
+    LaunchedEffect(pagerState.settledPage) {
+        val boardAtPage = deckState.boards.getOrNull(pagerState.settledPage)
+        if (boardAtPage != null && boardAtPage.id != activeBoard.id) {
+            onSelectBoard(boardAtPage.id)
+        }
+    }
 
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -155,7 +173,7 @@ fun LiveDeckScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = activeBoard.name,
+                            text = currentBoard.name,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontFamily = BricolageCondensed,
                             fontWeight = FontWeight.ExtraBold,
@@ -189,7 +207,7 @@ fun LiveDeckScreen(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                 )
                 deckState.boards.forEach { board ->
-                    val isActive = board.id == activeBoard.id
+                    val isActive = board.id == currentBoard.id
                     DropdownMenuItem(
                         text = {
                             Row(
@@ -344,21 +362,33 @@ fun LiveDeckScreen(
                     Spacer(modifier = Modifier.weight(1f))
                     VolumePill()
                 }
-                PadGrid(
-                    board = activeBoard,
-                    deckState = deckState,
-                    heroSlot = heroSlot,
-                    playingPads = playingPads,
-                    landscape = true,
-                    editingPads = editingPads,
-                    onPressPad = onPressPad,
-                    onReleasePad = onReleasePad,
-                    onEditPad = onEditPad,
-                    onAddCards = onAddCards,
+                HorizontalPager(
+                    state = pagerState,
+                    key = { page -> deckState.boards.getOrNull(page)?.id ?: page },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                )
+                ) { page ->
+                    val board = deckState.boards.getOrNull(page)
+                    if (board != null) {
+                        val heroForBoard = board.pads.firstOrNull { pad ->
+                            pad.filePath != null && PadRef(board.id, pad.slot) in deckState.favorites
+                        }?.slot
+                        PadGrid(
+                            board = board,
+                            deckState = deckState,
+                            heroSlot = heroForBoard,
+                            playingPads = playingPads,
+                            landscape = true,
+                            editingPads = editingPads,
+                            onPressPad = onPressPad,
+                            onReleasePad = onReleasePad,
+                            onEditPad = onEditPad,
+                            onAddCards = onAddCards,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             }
         } else {
             Column(
@@ -368,21 +398,33 @@ fun LiveDeckScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 DeckTitle(38.sp, toggleOnOwnRow = false)
-                PadGrid(
-                    board = activeBoard,
-                    deckState = deckState,
-                    heroSlot = heroSlot,
-                    playingPads = playingPads,
-                    landscape = false,
-                    editingPads = editingPads,
-                    onPressPad = onPressPad,
-                    onReleasePad = onReleasePad,
-                    onEditPad = onEditPad,
-                    onAddCards = onAddCards,
+                HorizontalPager(
+                    state = pagerState,
+                    key = { page -> deckState.boards.getOrNull(page)?.id ?: page },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                )
+                ) { page ->
+                    val board = deckState.boards.getOrNull(page)
+                    if (board != null) {
+                        val heroForBoard = board.pads.firstOrNull { pad ->
+                            pad.filePath != null && PadRef(board.id, pad.slot) in deckState.favorites
+                        }?.slot
+                        PadGrid(
+                            board = board,
+                            deckState = deckState,
+                            heroSlot = heroForBoard,
+                            playingPads = playingPads,
+                            landscape = false,
+                            editingPads = editingPads,
+                            onPressPad = onPressPad,
+                            onReleasePad = onReleasePad,
+                            onEditPad = onEditPad,
+                            onAddCards = onAddCards,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
                 VolumePill()
                 Spacer(modifier = Modifier.height(2.dp))
             }
