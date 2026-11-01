@@ -151,6 +151,11 @@ fun CloudLibraryScreen(
         }
     }
 
+    // Only a search has a real total. Trending has none, and its list also holds the built-in sounds.
+    val knownTotal = totalOnlineCount.takeIf {
+        searchQuery.isNotBlank() && !OnlineSoundService.isTrendingQuery(searchQuery) && it >= displayedItems.size
+    }
+
     fun selectedItems() = displayedItems.filter { it.id in selectedItemIds }
     fun copySelected() {
         val selectedList = selectedItems()
@@ -277,7 +282,7 @@ fun CloudLibraryScreen(
                 style = MaterialTheme.typography.labelLarge,
             )
             val countText = when {
-                totalOnlineCount > 0 -> "${displayedItems.size} of $totalOnlineCount sounds"
+                knownTotal != null -> "${displayedItems.size} of $knownTotal sounds"
                 displayedItems.isNotEmpty() -> "${displayedItems.size} sounds"
                 else -> null
             }
@@ -420,7 +425,8 @@ fun CloudLibraryScreen(
                 item(key = "load_more_button") {
                     SoftButton(
                         text = if (loadMoreFailed) "Couldn't load more. Tap to try again"
-                               else "Load 10 more (${displayedItems.size} of $totalOnlineCount)",
+                               else if (knownTotal != null) "Load 10 more (${displayedItems.size} of $knownTotal)"
+                               else "Load 10 more",
                         onClick = onLoadMore,
                         light = false,
                         modifier = Modifier
@@ -431,7 +437,7 @@ fun CloudLibraryScreen(
             } else if (displayedItems.isNotEmpty() && totalOnlineCount > 0) {
                 item(key = "all_loaded_indicator") {
                     Text(
-                        text = "That's all $totalOnlineCount sounds",
+                        text = "That's all ${displayedItems.size} sounds",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,

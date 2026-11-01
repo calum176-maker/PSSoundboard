@@ -18,15 +18,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.jms.pssoundboard.data.WhatsNew
+import com.jms.pssoundboard.data.WhatsNewRelease
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
 import com.jms.pssoundboard.ui.theme.gummy
 
-/** The changes in this build: shown once after an update, and from Setup any time. */
+/**
+ * What changed, one section per release (newest first): after an update it covers every release
+ * since the one last seen; from Setup, the recent history.
+ */
 @Composable
-fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
+fun WhatsNewDialog(version: String, releases: List<WhatsNewRelease>, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
@@ -45,7 +48,7 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Spewboard v${notes.version}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Text("Spewboard v$version", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
                 Column(
                     modifier = Modifier
@@ -53,16 +56,27 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    notes.items.forEach { item ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            // A small gummy blob for a bullet, in a colour picked from the text
-                            Box(
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .size(width = 14.dp, height = 13.dp)
-                                    .gummy(blobColourFor(item), blobShapeFor(item))
+                    releases.forEachIndexed { index, release ->
+                        // With more than one release, label each section with its version
+                        if (releases.size > 1) {
+                            Text(
+                                text = "v${release.version}",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(top = if (index == 0) 0.dp else 6.dp)
                             )
-                            Text(item, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        release.items.forEach { item ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                // A small gummy blob for a bullet, in a colour picked from the text
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .size(width = 14.dp, height = 13.dp)
+                                        .gummy(blobColourFor(item), blobShapeFor(item))
+                                )
+                                Text(item, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                            }
                         }
                     }
                 }

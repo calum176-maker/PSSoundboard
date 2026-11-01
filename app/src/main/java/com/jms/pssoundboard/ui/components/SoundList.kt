@@ -161,7 +161,7 @@ fun SelectionBar(
 }
 
 /**
- * A sound in a list: the screen's [leading] blob, the title (tap it to scroll a long one) over
+ * A sound in a list: the screen's [leading] blob, the title (up to two lines; tap it to scroll it on one) over
  * [subtitle], then Spew, Share and a ⋮ menu of [menuEntries].
  *
  * [key] identifies the sound, so a scrolling title stops when the row is reused for another one.
@@ -211,7 +211,8 @@ fun SoundRow(
                     text = title,
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
+                    // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
+                    maxLines = if (isScrollingTitle) 1 else 2,
                     overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
