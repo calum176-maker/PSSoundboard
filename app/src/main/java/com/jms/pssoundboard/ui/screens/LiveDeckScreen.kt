@@ -17,7 +17,10 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1244,29 +1247,71 @@ private fun TactilePad(
                     }
                 }
             }
+            // Calibrated touch handling: discriminates between taps/holds and swipes in any direction.
+            // If the finger moves more than touchSlop (e.g. user swiping horizontally to switch decks
+            // or scrolling vertically through cards), it cancels immediately without activating sound.
             .pointerInput(padRef.key, editing, anySelected) {
-                if (editing) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        },
-                        onTap = {
-                            if (anySelected) currentOnToggleSelect()
-                            else currentOnEdit()
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val downId = down.id
+                    val downPos = down.position
+                    val touchSlop = viewConfiguration.touchSlop
+
+                    var isTapOrHold = false
+                    var isCancelled = false
+                    val startTime = System.currentTimeMillis()
+                    val holdThresholdMs = 70L
+
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        val pointer = event.changes.find { it.id == downId }
+
+                        if (pointer == null || pointer.isConsumed) {
+                            isCancelled = true
+                            break
                         }
-                    )
-                } else {
-                    detectTapGestures(
-                        onPress = {
+
+                        val diff = pointer.position - downPos
+                        val distanceSq = diff.x * diff.x + diff.y * diff.y
+                        if (distanceSq > touchSlop * touchSlop) {
+                            // Finger moved in any direction beyond touch slop -> swipe detected!
+                            isCancelled = true
+                            break
+                        }
+
+                        if (!pointer.pressed) {
+                            // Finger lifted within touch slop -> genuine tap
+                            pointer.consume()
+                            if (editing) {
+                                if (anySelected) currentOnToggleSelect()
+                                else currentOnEdit()
+                            } else {
+                                if (!isTapOrHold) {
+                                    isPressed = true
+                                    currentOnPress()
+                                    isPressed = false
+                                    currentOnRelease()
+                                } else {
+                                    isPressed = false
+                                    currentOnRelease()
+                                }
+                            }
+                            break
+                        }
+
+                        val elapsed = System.currentTimeMillis() - startTime
+                        if (!editing && !isTapOrHold && elapsed >= holdThresholdMs) {
+                            // Held in place without swiping -> begin playing
+                            isTapOrHold = true
                             isPressed = true
                             currentOnPress()
-                            tryAwaitRelease()
-                            isPressed = false
-                            currentOnRelease()
                         }
-                    )
+                    }
+
+                    if (isCancelled && isTapOrHold) {
+                        isPressed = false
+                        currentOnRelease()
+                    }
                 }
             }
             .padding(if (isHero) PaddingValues(horizontal = 18.dp, vertical = 16.dp) else PaddingValues(horizontal = 8.dp, vertical = 6.dp)),

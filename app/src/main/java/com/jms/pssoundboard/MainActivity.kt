@@ -102,6 +102,7 @@ import com.jms.pssoundboard.service.FloatingOverlayService
 import com.jms.pssoundboard.ui.dialogs.ClipCreatorDialog
 import com.jms.pssoundboard.ui.dialogs.EquipTargetDialog
 import com.jms.pssoundboard.ui.dialogs.PadEditorDialog
+import com.jms.pssoundboard.ui.dialogs.ThemeCustomizerDialog
 import com.jms.pssoundboard.ui.screens.CloudLibraryScreen
 import com.jms.pssoundboard.ui.screens.HardwareGuideScreen
 import com.jms.pssoundboard.ui.screens.LiveDeckScreen
@@ -254,6 +255,7 @@ fun MainScreen(
 
     var currentTab by rememberSaveable { mutableIntStateOf(0) }
     var showFeedback by rememberSaveable { mutableStateOf(false) }
+    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri -> uri?.let { viewModel.exportDecks(it) } }
@@ -296,7 +298,8 @@ fun MainScreen(
                 TopStatusBar(
                     loopbackConnected = loopbackConnected,
                     onLaunchOverlay = onLaunchOverlay,
-                    onFeedback = { showFeedback = true }
+                    onFeedback = { showFeedback = true },
+                    onOpenTheme = { showThemeDialog = true }
                 )
             }
         },
@@ -320,7 +323,8 @@ fun MainScreen(
                 onSelectTab = { currentTab = it },
                 loopbackConnected = loopbackConnected,
                 onLaunchOverlay = onLaunchOverlay,
-                onFeedback = { showFeedback = true }
+                onFeedback = { showFeedback = true },
+                onOpenTheme = { showThemeDialog = true }
             )
         }
         Box(
@@ -396,7 +400,7 @@ fun MainScreen(
                         previewingId = previewingId,
                         selectedSoundSource = selectedSoundSource,
                         onSelectSoundSource = { viewModel.setSoundSource(it) },
-                        onSearchOnline = { viewModel.searchOnline(it) },
+                        onSearchOnline = { q, cat -> viewModel.searchOnline(q, cat) },
                         onRetrySearch = { viewModel.retryOnlineSearch() },
                         onLoadMore = { viewModel.loadMoreOnline() },
                         onSpewDirectly = { viewModel.spewDirectly(it) },
@@ -431,7 +435,8 @@ fun MainScreen(
                         onSendFeedback = { showFeedback = true },
                         onExportDecks = { exportLauncher.launch("spewboard-backup-${LocalDate.now()}.zip") },
                         onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) },
-                        onShowWhatsNew = onShowWhatsNew
+                        onShowWhatsNew = onShowWhatsNew,
+                        onOpenTheme = { showThemeDialog = true }
                     )
                 }
             }
@@ -538,6 +543,10 @@ fun MainScreen(
             onDismiss = { isClipCreatorOpen = false }
         )
     }
+
+    if (showThemeDialog) {
+        ThemeCustomizerDialog(onDismiss = { showThemeDialog = false })
+    }
 }
 
 @Composable
@@ -545,6 +554,7 @@ private fun TopStatusBar(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
     onFeedback: () -> Unit,
+    onOpenTheme: () -> Unit,
 ) {
     val statusColour = if (loopbackConnected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
     Row(
@@ -576,8 +586,23 @@ private fun TopStatusBar(
             )
         }
 
+        ThemeButton(onOpenTheme = onOpenTheme)
         FeedbackButton(onFeedback = onFeedback)
         MiniDeckButton(onLaunchOverlay = onLaunchOverlay)
+    }
+}
+
+@Composable
+private fun ThemeButton(onOpenTheme: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(ChipBlob)
+            .clickable(onClickLabel = "Change app theme and colors", role = Role.Button, onClick = onOpenTheme)
+            .semantics { contentDescription = "Change app theme" },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(PlayfulIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -689,6 +714,7 @@ private fun SideNavRail(
     loopbackConnected: Boolean,
     onLaunchOverlay: () -> Unit,
     onFeedback: () -> Unit,
+    onOpenTheme: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -728,6 +754,7 @@ private fun SideNavRail(
             }
         }
         Spacer(modifier = Modifier.weight(1f))
+        ThemeButton(onOpenTheme = onOpenTheme)
         FeedbackButton(onFeedback = onFeedback)
         val statusColour = if (loopbackConnected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
         Box(

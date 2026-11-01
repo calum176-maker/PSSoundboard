@@ -106,6 +106,31 @@ private val EXPLORE_CATEGORIES = listOf(
     "Music"
 )
 
+private fun itemMatchesCategory(item: LibraryItem, category: String): Boolean {
+    val cat = category.lowercase().trim()
+    val itemCat = item.category.lowercase().trim()
+    val itemTitle = item.title.lowercase().trim()
+
+    if (itemCat.contains(cat) || cat.contains(itemCat)) return true
+
+    return when (cat) {
+        "memes" -> itemCat.contains("meme") || itemCat.contains("trending")
+        "gaming" -> itemCat.contains("game") || itemCat.contains("gaming") ||
+            itemTitle.contains("roblox") || itemTitle.contains("minecraft") || itemTitle.contains("mario") ||
+            itemTitle.contains("gta") || itemTitle.contains("csgo") || itemTitle.contains("halo") || itemTitle.contains("zelda")
+        "movies & tv" -> itemCat.contains("movie") || itemCat.contains("tv") || itemCat.contains("film") ||
+            itemTitle.contains("movie") || itemTitle.contains("godfather") || itemTitle.contains("pulp") ||
+            itemTitle.contains("avengers") || itemTitle.contains("star wars")
+        "anime" -> itemCat.contains("anime") || itemCat.contains("manga") || itemCat.contains("japan") ||
+            itemTitle.contains("naruto") || itemTitle.contains("jojo") || itemTitle.contains("dbz") || itemTitle.contains("goku") || itemTitle.contains("anime")
+        "sound fx" -> itemCat.contains("effect") || itemCat.contains("fx") || itemCat.contains("alarm") ||
+            itemCat.contains("impact") || itemCat.contains("cartoon") || itemCat.contains("built-in")
+        "reactions" -> itemCat.contains("reaction") || itemCat.contains("crowd")
+        "music" -> itemCat.contains("music") || itemCat.contains("tune") || itemCat.contains("song")
+        else -> itemCat.contains(cat)
+    }
+}
+
 private fun extractVaultRecommendations(entries: List<SpewEntry>): List<VaultRecommendation> {
     if (entries.isEmpty()) return emptyList()
 
@@ -176,7 +201,7 @@ fun CloudLibraryScreen(
     previewingId: String?,
     selectedSoundSource: SoundSource = SoundSource.ALL,
     onSelectSoundSource: (SoundSource) -> Unit = {},
-    onSearchOnline: (String) -> Unit,
+    onSearchOnline: (query: String, category: String?) -> Unit,
     onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
     onSpewDirectly: (LibraryItem) -> Unit,
@@ -212,10 +237,10 @@ fun CloudLibraryScreen(
         (if (selectedSoundSource != SoundSource.ALL) 1 else 0) +
         (if (selectedSort != SortOrder.DEFAULT) 1 else 0)
 
-    // Debounce search query so user typing queries the online API
-    LaunchedEffect(searchQuery) {
-        delay(400)
-        onSearchOnline(searchQuery)
+    // Debounce search query and category so user input queries the online API with both
+    LaunchedEffect(searchQuery, selectedCategory) {
+        delay(350)
+        onSearchOnline(searchQuery, selectedCategory)
     }
 
     // Infinite scroll detection: automatically fetch next 10 sounds as user scrolls down
@@ -268,12 +293,19 @@ fun CloudLibraryScreen(
             onlineResults
         }
 
+        // Apply category filter
+        val categoryFiltered = if (selectedCategory != null) {
+            base.filter { itemMatchesCategory(it, selectedCategory!!) }
+        } else {
+            base
+        }
+
         // Apply duration filter
         val durationFiltered = when (selectedDuration) {
-            DurationFilter.ANY -> base
-            DurationFilter.SHORT -> base.filter { (it.durationMs ?: 0L) in 1..2999L }
-            DurationFilter.MEDIUM -> base.filter { (it.durationMs ?: 0L) in 3000L..9999L }
-            DurationFilter.LONG -> base.filter { (it.durationMs ?: 0L) >= 10000L }
+            DurationFilter.ANY -> categoryFiltered
+            DurationFilter.SHORT -> categoryFiltered.filter { (it.durationMs ?: 0L) in 1..2999L }
+            DurationFilter.MEDIUM -> categoryFiltered.filter { (it.durationMs ?: 0L) in 3000L..9999L }
+            DurationFilter.LONG -> categoryFiltered.filter { (it.durationMs ?: 0L) >= 10000L }
         }
 
         // Apply sort
@@ -382,7 +414,7 @@ fun CloudLibraryScreen(
                                 searchQuery = ""
                                 selectedCategory = null
                                 activeVaultRecommendation = null
-                                onSearchOnline("")
+                                onSearchOnline("", null)
                             }
                         )
                     }
@@ -450,8 +482,7 @@ fun CloudLibraryScreen(
 
             // Quick explore categories
             items(EXPLORE_CATEGORIES, key = { it }) { category ->
-                val isSelected = selectedCategory.equals(category, ignoreCase = true) ||
-                    (searchQuery.isNotBlank() && searchQuery.equals(category, ignoreCase = true))
+                val isSelected = selectedCategory.equals(category, ignoreCase = true)
                 val colIndex = (category.hashCode().let { if (it < 0) -it else it }) % PadPalette.size
                 Box(
                     modifier = Modifier
@@ -468,15 +499,7 @@ fun CloudLibraryScreen(
                         colour = PadPalette[colIndex].toComposeColor(),
                         onClick = {
                             activeVaultRecommendation = null
-                            if (isSelected) {
-                                selectedCategory = null
-                                searchQuery = ""
-                                onSearchOnline("")
-                            } else {
-                                selectedCategory = category
-                                searchQuery = category.lowercase()
-                                onSearchOnline(category.lowercase())
-                            }
+                            selectedCategory = if (isSelected) null else category
                         }
                     )
                 }
@@ -496,7 +519,7 @@ fun CloudLibraryScreen(
                             activeVaultRecommendation = null
                             onSelectSoundSource(SoundSource.ALL)
                             searchQuery = ""
-                            onSearchOnline("")
+                            onSearchOnline("", null)
                         }
                     )
                 }
@@ -935,18 +958,12 @@ fun CloudLibraryScreen(
             selectedSource = selectedSoundSource,
             onSelectSource = {
                 onSelectSoundSource(it)
-                onSearchOnline(searchQuery)
+                onSearchOnline(searchQuery, selectedCategory)
             },
             selectedCategory = selectedCategory,
             onSelectCategory = { cat ->
                 selectedCategory = cat
-                if (cat == null) {
-                    searchQuery = ""
-                    onSearchOnline("")
-                } else {
-                    searchQuery = cat.lowercase()
-                    onSearchOnline(cat.lowercase())
-                }
+                onSearchOnline(searchQuery, cat)
             },
             selectedDuration = selectedDuration,
             onSelectDuration = { selectedDuration = it },
@@ -959,7 +976,7 @@ fun CloudLibraryScreen(
                 activeVaultRecommendation = null
                 onSelectSoundSource(SoundSource.ALL)
                 searchQuery = ""
-                onSearchOnline("")
+                onSearchOnline("", null)
             },
             onDismiss = { filterDialogOpen = false }
         )
@@ -972,7 +989,7 @@ fun CloudLibraryScreen(
             onSelectRecommendation = { query ->
                 searchQuery = query
                 activeVaultRecommendation = query.ifBlank { "Trending" }
-                onSearchOnline(query)
+                onSearchOnline(query, selectedCategory)
             },
             onDismiss = { recommendationsDialogOpen = false }
         )

@@ -78,7 +78,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setSoundSource(source: SoundSource) {
         if (_selectedSoundSource.value != source) {
             _selectedSoundSource.value = source
-            searchOnline(activeSearchQuery)
+            searchOnline(activeSearchQuery, activeSearchCategory)
         }
     }
 
@@ -107,6 +107,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
+    private var activeSearchCategory: String? = null
     private var searchJob: Job? = null
     private var loadMoreJob: Job? = null
 
@@ -631,12 +632,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---- Online Search (Internet & Movie Clips - 10 At A Time with Infinite Scroll) --------
 
-    fun searchOnline(query: String) {
+    fun searchOnline(query: String, category: String? = null) {
         searchJob?.cancel()
         // A page still loading for the previous query would otherwise land on these results.
         loadMoreJob?.cancel()
         _isLoadingMoreOnline.value = false
         activeSearchQuery = query
+        activeSearchCategory = category
         currentOnlinePage = 1
         _hasMoreOnlineResults.value = false
         _totalOnlineCount.value = 0
@@ -644,7 +646,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
-            val pageResult = OnlineSoundService.searchSounds(query, page = 1, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(query, category = category, page = 1, source = _selectedSoundSource.value)
             _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
@@ -653,7 +655,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun retryOnlineSearch() = searchOnline(activeSearchQuery)
+    fun retryOnlineSearch() = searchOnline(activeSearchQuery, activeSearchCategory)
 
     /**
      * Loads the next 10 sounds as the user scrolls down, appending them to the results.
@@ -664,7 +666,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
             _loadMoreFailed.value = false
-            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, category = activeSearchCategory, page = nextPage, source = _selectedSoundSource.value)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
                 val existingUrls = _onlineSearchResults.value.mapNotNull { it.url }.toSet()

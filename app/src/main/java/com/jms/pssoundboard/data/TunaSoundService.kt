@@ -42,16 +42,33 @@ object TunaSoundService {
             .create(TunaSoundApi::class.java)
     }
 
+    fun mapCategoryToTunaTag(category: String?): String? {
+        if (category.isNullOrBlank()) return null
+        return when (category.lowercase().trim()) {
+            "memes", "meme" -> "meme"
+            "gaming", "game", "games" -> "games"
+            "movies & tv", "movies", "tv", "movie", "film" -> "movies"
+            "anime", "manga" -> "anime"
+            "sound fx", "sound-effects", "sfx", "effects" -> "effects"
+            "reactions", "reaction" -> "reactions"
+            "music", "songs" -> "music"
+            else -> category.lowercase().trim()
+        }
+    }
+
     /**
      * Searches community meme sounds via the Voicemod Tuna API.
-     * When [query] is empty or trending, searches tag=meme.
+     * When [category] is provided, searches sounds under that tag.
+     * When [query] is empty or trending, searches tag=[category] or tag=meme.
      */
     suspend fun searchTunaSounds(
         query: String,
+        category: String? = null,
         page: Int = 1,
         pageSize: Int = 10
     ): OnlineSearchResult = withContext(Dispatchers.IO) {
         val cleanQuery = query.trim()
+        val tag = mapCategoryToTunaTag(category)
         val isTrending = cleanQuery.isEmpty() ||
             cleanQuery.equals("trending", ignoreCase = true) ||
             cleanQuery.equals("trending memes", ignoreCase = true) ||
@@ -61,14 +78,14 @@ object TunaSoundService {
             val response: TunaSearchResponse = if (isTrending) {
                 api.searchSounds(
                     search = null,
-                    tag = "meme",
+                    tag = tag ?: "meme",
                     page = page,
                     size = pageSize
                 )
             } else {
                 api.searchSounds(
                     search = cleanQuery,
-                    tag = null,
+                    tag = tag,
                     page = page,
                     size = pageSize
                 )

@@ -91,29 +91,57 @@ object OnlineSoundService {
     }
 
     /**
+     * Maps user-facing category name to MyInstants web category URL slug.
+     */
+    fun mapCategoryToMyInstantsSlug(category: String?): String? {
+        if (category.isNullOrBlank()) return null
+        return when (category.lowercase().trim()) {
+            "memes", "meme" -> "memes"
+            "gaming", "game", "games" -> "games"
+            "movies & tv", "movies", "tv", "movie", "film" -> "movies"
+            "anime", "manga" -> "anime-and-manga"
+            "sound fx", "sound-effects", "sfx", "effects" -> "sound-effects"
+            "reactions", "reaction" -> "reactions"
+            "music", "songs" -> "music"
+            else -> null
+        }
+    }
+
+    /**
      * Searches for sounds with relevance ranking and pagination.
+     * When [category] is provided without a specific query, returns top community sounds under that category.
      * When [query] is empty or "trending", returns community meme / trending charts.
      */
     suspend fun searchSounds(
         query: String,
+        category: String? = null,
         page: Int = 1,
         source: SoundSource = SoundSource.ALL
     ): OnlineSearchResult = withContext(Dispatchers.IO) {
         val cleanQuery = query.trim()
-        val cacheKey = "${source.id}:$cleanQuery:p$page"
+        val catSlug = mapCategoryToMyInstantsSlug(category)
+        val cacheKey = "${source.id}:$cleanQuery:${category.orEmpty()}:p$page"
         cache[cacheKey]?.let { return@withContext it }
 
         val result = when (source) {
-            SoundSource.TUNA -> TunaSoundService.searchTunaSounds(cleanQuery, page = page, pageSize = 10)
+            SoundSource.TUNA -> TunaSoundService.searchTunaSounds(cleanQuery, category = category, page = page, pageSize = 10)
             SoundSource.MY_INSTANTS -> {
-                if (isTrendingQuery(cleanQuery)) fetchTrendingPage(page)
-                else fetchMyInstantsPage(cleanQuery, page)
+                if (isTrendingQuery(cleanQuery)) {
+                    if (catSlug != null) fetchMyInstantsCategoryPage(catSlug, category ?: "Trending", page)
+                    else fetchTrendingPage(page)
+                } else {
+                    fetchMyInstantsPage(cleanQuery, page)
+                }
             }
             SoundSource.ALL -> {
-                val tunaDeferred = async { TunaSoundService.searchTunaSounds(cleanQuery, page = page, pageSize = 8) }
+                val tunaDeferred = async { TunaSoundService.searchTunaSounds(cleanQuery, category = category, page = page, pageSize = 8) }
                 val myInstantsDeferred = async {
-                    if (isTrendingQuery(cleanQuery)) fetchTrendingPage(page)
-                    else fetchMyInstantsPage(cleanQuery, page)
+                    if (isTrendingQuery(cleanQuery)) {
+                        if (catSlug != null) fetchMyInstantsCategoryPage(catSlug, category ?: "Trending", page)
+                        else fetchTrendingPage(page)
+                    } else {
+                        fetchMyInstantsPage(cleanQuery, page)
+                    }
                 }
                 val tunaRes = tunaDeferred.await()
                 val myInstantsRes = myInstantsDeferred.await()
@@ -146,7 +174,7 @@ object OnlineSoundService {
                 .trim()
                 .replace(Regex("\\s+"), " ")
             if (sanitized.isNotBlank() && !sanitized.equals(cleanQuery, ignoreCase = true)) {
-                val fallback = searchSounds(sanitized, 1, source)
+                val fallback = searchSounds(sanitized, category, 1, source)
                 if (fallback.items.isNotEmpty()) {
                     if (!fallback.failed) cache[cacheKey] = fallback
                     return@withContext fallback
@@ -159,6 +187,11 @@ object OnlineSoundService {
         result
     }
 
+    private fun fetchMyInstantsCategoryPage(slug: String, categoryName: String, page: Int): OnlineSearchResult {
+        val url = if (page == 1) "https://www.myinstants.com/en/categories/$slug/" else "https://www.myinstants.com/en/categories/$slug/?page=$page"
+        return fetchMyInstantsHtmlUrl(url, page, categoryName)
+    }
+
     /**
      * Fetches real live trending sounds from MyInstants trending chart.
      * Falls back to the JSON API if HTML parsing is unavailable.
@@ -169,6 +202,10 @@ object OnlineSoundService {
         } else {
             "https://www.myinstants.com/en/trending/us/?page=$page"
         }
+        return fetchMyInstantsHtmlUrl(urlString, page, "Trending")
+    }
+
+    private fun fetchMyInstantsHtmlUrl(urlString: String, page: Int, defaultCategory: String): OnlineSearchResult {
 
         var connection: HttpURLConnection? = null
         try {
@@ -213,9 +250,9 @@ object OnlineSoundService {
 
                 items.add(
                     LibraryItem(
-                        id = "trending:$slug:$page:$index",
+                        id = "online:$slug:$page:$index",
                         title = rawTitle,
-                        category = if (category == "Internet Meme") "Trending" else category,
+                        category = if (category == "Internet Meme") defaultCategory else category,
                         url = fullSoundUrl,
                         source = "MyInstants"
                     )

@@ -67,6 +67,7 @@ fun HardwareGuideScreen(
     onExportDecks: () -> Unit,
     onImportDecks: () -> Unit,
     onShowWhatsNew: (() -> Unit)?,
+    onOpenTheme: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -217,6 +218,18 @@ fun HardwareGuideScreen(
                 SoftButton(text = "Export decks", onClick = onExportDecks)
                 SoftButton(text = "Import decks", onClick = onImportDecks, light = false)
             }
+        }
+
+        // App Theme & Appearance
+        if (onOpenTheme != null) {
+            StatusCard(
+                title = "Theme & Appearance",
+                body = "Switch between Night, Dark, and Auto modes or choose your favorite color theme.",
+                art = {
+                    Icon(PlayfulIcons.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                },
+                action = { SoftButton(text = "Customize Theme", onClick = onOpenTheme) }
+            )
         }
 
         // Tester feedback: goes to the team

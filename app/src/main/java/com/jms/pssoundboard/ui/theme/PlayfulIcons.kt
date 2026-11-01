@@ -77,4 +77,14 @@ object PlayfulIcons {
     val Link = icon("link", stroked = listOf("M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1", "M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"))
     val ChevronDown = icon("chevron_down", stroked = listOf("M6 9l6 6 6-6"))
     val Feedback = icon("feedback", stroked = listOf("M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-5 4v-4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z", "M9 10h6"))
+    val Palette = icon(
+        "palette",
+        stroked = listOf(
+            "M12 3a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9a2.5 2.5 0 0 0 2.5-2.5c0-.68-.27-1.3-.71-1.76a2.49 2.49 0 0 1-.72-1.74c0-1.38 1.12-2.5 2.5-2.5H17a5 5 0 0 0 5-5c0-4.97-4.03-9-10-9z",
+            ellipse(7.5f, 10.5f, 1.2f, 1.2f),
+            ellipse(10.5f, 7.5f, 1.2f, 1.2f),
+            ellipse(14.5f, 7.5f, 1.2f, 1.2f),
+            ellipse(17.5f, 10.5f, 1.2f, 1.2f)
+        )
+    )
 }
