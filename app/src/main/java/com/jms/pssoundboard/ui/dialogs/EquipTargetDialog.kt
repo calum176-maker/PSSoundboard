@@ -1,8 +1,8 @@
 package com.jms.pssoundboard.ui.dialogs
 
+import androidx.compose.ui.text.TextStyle
+import com.jms.pssoundboard.ui.components.PadLabel
 import androidx.compose.foundation.background
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -214,21 +213,16 @@ private fun TargetPad(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("$number", color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            // Shrinks a little rather than splitting a word across lines at large font sizes:
-            // a one-word name gets one line, so it can only shrink to fit.
-            val name = title ?: "Empty"
-            BasicText(
-                text = name,
-                style = LocalTextStyle.current.merge(
+            PadLabel(
+                text = title ?: "Empty",
+                style = TextStyle(
                     color = ink,
                     fontSize = 13.sp,
                     fontWeight = if (filled) FontWeight.Bold else FontWeight.Medium,
                     lineHeight = 1.15.em,
                     textAlign = TextAlign.Center
                 ),
-                maxLines = if (name.trim().contains(' ')) 2 else 1,
-                overflow = TextOverflow.Ellipsis,
-                autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 13.sp, stepSize = 0.5.sp)
+                maxLines = 2
             )
         }
     }
