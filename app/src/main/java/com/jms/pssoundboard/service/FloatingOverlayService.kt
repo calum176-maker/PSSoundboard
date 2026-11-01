@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -77,19 +78,13 @@ import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.InkOnBlob
 import com.jms.pssoundboard.ui.theme.PSSoundboardTheme
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.StopRed
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.padColour
+import com.jms.pssoundboard.ui.theme.spew
 import com.jms.pssoundboard.ui.theme.spewPulse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -113,7 +108,6 @@ private val ClusterHeight = 396.dp
 
 /** Room around the cluster for the playing pulse rings, which draw outside each blob. */
 private val ClusterMargin = 10.dp
-
 
 /**
  * Foreground service that renders a collapsible, draggable floating Mini-Deck
@@ -476,7 +470,6 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         super.onDestroy()
     }
 
-
     // -----------------------------------------------------------------------------------------
     // Composables for Floating Overlay
     // -----------------------------------------------------------------------------------------
@@ -488,7 +481,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         Box(
             modifier = Modifier
                 .size(width = 60.dp, height = 56.dp)
-                .gummy(SpewYellow, PadShape.PEBBLE.shape)
+                .gummy(MaterialTheme.colorScheme.primary, PadShape.PEBBLE.shape)
                 .semantics {
                     role = Role.Button
                     contentDescription = "Mini-deck. Drag to move, tap to open"
@@ -500,7 +493,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 .overlayDragHandle(onTap = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Icon(PlayfulIcons.MiniDeck, contentDescription = null, tint = InkOnBlob, modifier = Modifier.size(24.dp))
+            Icon(PlayfulIcons.MiniDeck, contentDescription = null, tint = MaterialTheme.spew.onBlob, modifier = Modifier.size(24.dp))
         }
     }
 
@@ -532,7 +525,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 modifier = Modifier
                     .offset(x = 80.dp, y = 0.dp)
                     .size(width = 60.dp, height = 48.dp)
-                    .gummy(Ground, ChipBlob)
+                    .gummy(MaterialTheme.colorScheme.background, ChipBlob)
                     .semantics {
                         role = Role.Button
                         contentDescription = "Mini-deck grip. Drag to move, tap to tuck away"
@@ -552,7 +545,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 modifier = Modifier
                     .offset(x = 172.dp, y = 2.dp)
                     .size(width = 46.dp, height = 44.dp)
-                    .gummy(Ground, PadShape.PEBBLE.shape)
+                    .gummy(MaterialTheme.colorScheme.background, PadShape.PEBBLE.shape)
                     .semantics {
                         role = Role.Button
                         contentDescription = "Close the mini-deck"
@@ -564,7 +557,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                     .pointerInput(Unit) { detectTapGestures(onTap = { currentOnClose() }) },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(PlayfulIcons.Close, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
+                Icon(PlayfulIcons.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
             }
 
             PadSpots.forEachIndexed { index, spot ->
@@ -599,11 +592,13 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
     /** Six small dots, the usual sign for something you can grab and drag. */
     @Composable
     private fun GripDots() {
+        // The draw block isn't composable, so read the theme colour here.
+        val dotColour = MaterialTheme.colorScheme.onSurface
         Canvas(modifier = Modifier.size(width = 22.dp, height = 12.dp)) {
             val radius = 1.8.dp.toPx()
             val xs = listOf(radius, size.width / 2f, size.width - radius)
             val ys = listOf(size.height * 0.22f, size.height * 0.78f)
-            for (x in xs) for (y in ys) drawCircle(InkLight, radius, Offset(x, y))
+            for (x in xs) for (y in ys) drawCircle(dotColour, radius, Offset(x, y))
         }
     }
 
@@ -690,11 +685,11 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         Box(
             modifier = modifier
                 .clip(shape)
-                .background(Surface2)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .semantics { contentDescription = "Empty mini-deck slot" },
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Empty", color = InkMuted, fontFamily = BricolageCondensed, fontSize = 14.sp)
+            Text(text = "Empty", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = BricolageCondensed, fontSize = 14.sp)
         }
     }
 
@@ -703,7 +698,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         val currentOnStopAll by rememberUpdatedState(onStopAll)
         Row(
             modifier = modifier
-                .gummy(StopRed, PadShape.PEBBLE.shape)
+                .gummy(MaterialTheme.colorScheme.error, PadShape.PEBBLE.shape)
                 .semantics(mergeDescendants = true) {
                     role = Role.Button
                     contentDescription = "Stop all sounds"
@@ -718,10 +713,10 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
         ) {
-            Icon(PlayfulIcons.Stop, contentDescription = null, tint = InkOnBlob, modifier = Modifier.size(14.dp))
+            Icon(PlayfulIcons.Stop, contentDescription = null, tint = MaterialTheme.spew.onBlob, modifier = Modifier.size(14.dp))
             Text(
                 text = "Stop",
-                color = InkOnBlob,
+                color = MaterialTheme.spew.onBlob,
                 fontFamily = BricolageCondensed,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 17.sp
@@ -741,19 +736,19 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 modifier = Modifier
                     .size(64.dp)
                     .scale(grow)
-                    .gummy(if (active) StopRed else Surface2, CircleShape),
+                    .gummy(if (active) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(PlayfulIcons.Close, contentDescription = null, tint = if (active) InkOnBlob else InkLight, modifier = Modifier.size(26.dp))
+                Icon(PlayfulIcons.Close, contentDescription = null, tint = if (active) MaterialTheme.spew.onBlob else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(26.dp))
             }
             Text(
                 text = if (active) "Let go to close" else "Drop here to close",
-                color = InkLight,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Ground.copy(alpha = 0.85f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
