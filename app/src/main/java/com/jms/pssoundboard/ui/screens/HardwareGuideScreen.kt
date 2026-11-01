@@ -1,5 +1,6 @@
 package com.jms.pssoundboard.ui.screens
 
+import com.jms.pssoundboard.BuildConfig
 import com.jms.pssoundboard.ui.components.CapsuleShape
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.StatusCard
@@ -72,6 +73,7 @@ fun HardwareGuideScreen(
     onSendFeedback: () -> Unit,
     onExportDecks: () -> Unit,
     onImportDecks: () -> Unit,
+    onShowWhatsNew: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -239,6 +241,13 @@ fun HardwareGuideScreen(
                 Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkLight, modifier = Modifier.size(28.dp))
             },
             action = { SoftButton(text = "Send feedback", onClick = onSendFeedback) }
+        )
+
+        // Version, and this build's changes (GitHub builds only)
+        StatusCard(
+            title = "Spewboard v${BuildConfig.VERSION_NAME}",
+            body = if (onShowWhatsNew != null) "See what changed in this version." else "Test build.",
+            action = onShowWhatsNew?.let { show -> { SoftButton(text = "What's new", onClick = show, light = false) } }
         )
     }
 }
