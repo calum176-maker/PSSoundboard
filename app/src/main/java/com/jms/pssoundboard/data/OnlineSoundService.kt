@@ -199,7 +199,8 @@ object OnlineSoundService {
             val hasMore = html.contains("page=${page + 1}") || items.size >= 10
             return OnlineSearchResult(
                 items = items,
-                totalCount = maxOf(items.size * page + if (hasMore) 36 else 0, 100),
+                // The trending chart gives no total, so report none rather than a guess
+                totalCount = 0,
                 hasMore = hasMore,
                 page = page
             )

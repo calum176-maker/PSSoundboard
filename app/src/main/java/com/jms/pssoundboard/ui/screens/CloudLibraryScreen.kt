@@ -159,6 +159,11 @@ fun CloudLibraryScreen(
         }
     }
 
+    // Only a search has a real total. Trending has none, and its list also holds the built-in sounds.
+    val knownTotal = totalOnlineCount.takeIf {
+        searchQuery.isNotBlank() && !OnlineSoundService.isTrendingQuery(searchQuery) && it >= displayedItems.size
+    }
+
     fun copySelected() {
         val selectedList = displayedItems.filter { it.id in selectedItemIds }
         val text = selectedList.joinToString("\n") {
@@ -294,7 +299,7 @@ fun CloudLibraryScreen(
                 style = MaterialTheme.typography.labelLarge,
             )
             val countText = when {
-                totalOnlineCount > 0 -> "${displayedItems.size} of $totalOnlineCount sounds"
+                knownTotal != null -> "${displayedItems.size} of $knownTotal sounds"
                 displayedItems.isNotEmpty() -> "${displayedItems.size} sounds"
                 else -> null
             }
@@ -438,7 +443,8 @@ fun CloudLibraryScreen(
                             text = item.title,
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
+                            // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
+                            maxLines = if (isScrollingTitle) 1 else 2,
                             overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -562,7 +568,8 @@ fun CloudLibraryScreen(
                 item(key = "load_more_button") {
                     SoftButton(
                         text = if (loadMoreFailed) "Couldn't load more. Tap to try again"
-                               else "Load 10 more (${displayedItems.size} of $totalOnlineCount)",
+                               else if (knownTotal != null) "Load 10 more (${displayedItems.size} of $knownTotal)"
+                               else "Load 10 more",
                         onClick = onLoadMore,
                         light = false,
                         modifier = Modifier
@@ -573,7 +580,7 @@ fun CloudLibraryScreen(
             } else if (displayedItems.isNotEmpty() && totalOnlineCount > 0) {
                 item(key = "all_loaded_indicator") {
                     Text(
-                        text = "That's all $totalOnlineCount sounds",
+                        text = "That's all ${displayedItems.size} sounds",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,

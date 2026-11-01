@@ -395,7 +395,8 @@ private fun VaultRow(
                     text = entry.title,
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
+                    // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
+                    maxLines = if (isScrollingTitle) 1 else 2,
                     overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f, fill = false)
