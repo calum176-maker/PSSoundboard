@@ -34,6 +34,8 @@ jobs:
       PSSB_VERSION_NAME: 1.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history and tags, for the What's new list
 
       - uses: actions/setup-java@v5
         with:
@@ -76,6 +78,13 @@ jobs:
           echo "PSSB_KEYSTORE_FILE=$RUNNER_TEMP/pssb.p12" >> "$GITHUB_ENV"
           echo "PSSB_KEYSTORE_PASSWORD=$password" >> "$GITHUB_ENV"
           echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Write the What's new list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
+          python3 .github/scripts/whats_new.py "$PSSB_VERSION_NAME" "$previous" app/src/main/assets/whats_new.json
 
       - name: Build
         env:

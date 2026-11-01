@@ -1,5 +1,7 @@
 package com.jms.pssoundboard
 
+import com.jms.pssoundboard.data.WhatsNewRepository
+import com.jms.pssoundboard.ui.dialogs.WhatsNewDialog
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.tween
@@ -129,6 +131,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private val whatsNew by lazy { WhatsNewRepository(applicationContext) }
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -164,18 +167,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             PSSoundboardTheme {
                 var showIntro by rememberSaveable { mutableStateOf(freshStart) }
+                var showWhatsNew by rememberSaveable { mutableStateOf(false) }
                 Box {
                     MainScreen(
                         viewModel = viewModel,
-                        onLaunchOverlay = { toggleFloatingOverlay() }
+                        onLaunchOverlay = { toggleFloatingOverlay() },
+                        onShowWhatsNew = if (whatsNew.notes != null) ({ showWhatsNew = true }) else null
                     )
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showIntro,
                         enter = EnterTransition.None,
                         exit = fadeOut(tween(300))
                     ) {
-                        IntroSplash(onFinished = { showIntro = false })
+                        IntroSplash(onFinished = {
+                            if (showIntro) {
+                                showIntro = false
+                                // First open of this version: show its changes once
+                                if (whatsNew.isUnseen()) showWhatsNew = true
+                            }
+                        })
                     }
+                }
+                val notes = whatsNew.notes
+                if (showWhatsNew && notes != null) {
+                    WhatsNewDialog(notes = notes, onDismiss = {
+                        showWhatsNew = false
+                        whatsNew.markSeen()
+                    })
                 }
             }
         }
@@ -215,6 +233,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     viewModel: MainViewModel,
     onLaunchOverlay: () -> Unit,
+    onShowWhatsNew: (() -> Unit)?,
 ) {
     val deckState by viewModel.deck.collectAsState()
     val isReady by viewModel.ready.collectAsState()
@@ -400,7 +419,8 @@ fun MainScreen(
                         onToggleTestTone = { viewModel.toggleTestTone() },
                         onSendFeedback = { showFeedback = true },
                         onExportDecks = { exportLauncher.launch("spewboard-backup-${LocalDate.now()}.zip") },
-                        onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }
+                        onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) },
+                        onShowWhatsNew = onShowWhatsNew
                     )
                 }
             }
