@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,12 +47,7 @@ import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
 import com.jms.pssoundboard.ui.theme.PadShape
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.Surface1
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.padColour
@@ -76,7 +72,7 @@ fun EquipTargetDialog(
                 .fillMaxWidth()
                 .padding(8.dp),
             shape = RoundedCornerShape(28.dp),
-            color = Surface1
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
                 modifier = Modifier
@@ -87,14 +83,14 @@ fun EquipTargetDialog(
                 Column {
                     Text(
                         text = "Add to a pad",
-                        color = InkLight,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = BricolageCondensed,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 28.sp
                     )
                     Text(
                         text = "${item.title} · ${item.category}",
-                        color = InkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -128,7 +124,7 @@ fun EquipTargetDialog(
                     SectionLabel("Which pad?")
                     Text(
                         text = if (targetedPad?.filePath != null) "Replaces \"${targetedPad.title}\"" else "Empty pad",
-                        color = if (targetedPad?.filePath != null) SpewYellow else InkMuted,
+                        color = if (targetedPad?.filePath != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -181,7 +177,7 @@ fun EquipTargetDialog(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = InkLight, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    Text(text, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
 }
 
 /** A mini pad in the target grid. Grows with the text, so long names and large fonts aren't cut off. */
@@ -197,13 +193,13 @@ private fun TargetPad(
 ) {
     val filled = title != null
     val colour = padColour(colourHex ?: "")
-    val fill = if (filled) Modifier.gummy(colour, shape.shape) else Modifier.clip(shape.shape).background(Surface2)
-    val ink = if (filled) inkOn(colour) else InkMuted
+    val fill = if (filled) Modifier.gummy(colour, shape.shape) else Modifier.clip(shape.shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+    val ink = if (filled) inkOn(colour) else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
             .heightIn(min = 60.dp)
             .then(fill)
-            .then(if (selected) Modifier.border(3.dp, InkLight, shape.shape) else Modifier)
+            .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, shape.shape) else Modifier)
             .clickable(role = Role.RadioButton, onClick = onClick)
             .semantics {
                 contentDescription = "Pad $number, ${title ?: "empty"}" + if (selected) ", selected" else ""

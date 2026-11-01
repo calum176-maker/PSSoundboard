@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,18 +55,11 @@ import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
 import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PinStar
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.StopRed
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
-
-/** Pin star colour; matches the mockup's small yellow star. */
-private val PinStar = Color(0xFFFFE020)
 
 @Composable
 fun SpewVaultScreen(
@@ -137,7 +131,7 @@ fun SpewVaultScreen(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Clear all", color = StopRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Clear all", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
             }
@@ -185,14 +179,14 @@ fun SpewVaultScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 22.dp, bottomEnd = 24.dp, bottomStart = 20.dp))
-                    .background(Surface2)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .padding(start = 16.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = "${selectedEntryIds.size} selected",
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.weight(1f)
@@ -206,7 +200,7 @@ fun SpewVaultScreen(
                     icon = PlayfulIcons.Download,
                     contentDescription = "Save selected clips to Downloads",
                     onClick = { onSaveMultipleToDownloads(selectedList()) },
-                    colour = SpewYellow
+                    colour = MaterialTheme.colorScheme.primary
                 )
 
                 var batchMenuExpanded by remember { mutableStateOf(false) }
@@ -219,7 +213,7 @@ fun SpewVaultScreen(
                     DropdownMenu(
                         expanded = batchMenuExpanded,
                         onDismissRequest = { batchMenuExpanded = false },
-                        modifier = Modifier.background(Surface2)
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     ) {
                         VaultMenuItem("Copy all links", PlayfulIcons.Copy) {
                             batchMenuExpanded = false
@@ -229,12 +223,12 @@ fun SpewVaultScreen(
                             batchMenuExpanded = false
                             onSaveMultipleToDownloads(selectedList())
                         }
-                        VaultMenuItem("Delete selected", PlayfulIcons.Trash, colour = StopRed) {
+                        VaultMenuItem("Delete selected", PlayfulIcons.Trash, colour = MaterialTheme.colorScheme.error) {
                             batchMenuExpanded = false
                             onDeleteEntries(selectedEntryIds)
                             selectedEntryIds = emptySet()
                         }
-                        VaultMenuItem("Deselect all", PlayfulIcons.Close, colour = InkMuted) {
+                        VaultMenuItem("Deselect all", PlayfulIcons.Close, colour = MaterialTheme.colorScheme.onSurfaceVariant) {
                             batchMenuExpanded = false
                             selectedEntryIds = emptySet()
                         }
@@ -262,13 +256,13 @@ fun SpewVaultScreen(
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
-                                .gummy(SpewYellow, PadShape.entries.first().shape),
+                                .gummy(MaterialTheme.colorScheme.primary, PadShape.entries.first().shape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = PlayfulIcons.Vault,
                                 contentDescription = null,
-                                tint = inkOn(SpewYellow),
+                                tint = inkOn(MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -285,7 +279,7 @@ fun SpewVaultScreen(
             ) {
                 Text(
                     text = "No clips match “$searchQuery”",
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center
                 )
@@ -394,7 +388,7 @@ private fun VaultRow(
                 }
                 Text(
                     text = entry.title,
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     maxLines = 1,
@@ -403,7 +397,7 @@ private fun VaultRow(
             }
             Text(
                 text = "${entry.category} · ${entry.formattedLastSpewed().replaceFirstChar { it.lowercase() }}",
-                color = InkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -425,7 +419,7 @@ private fun VaultRow(
             DropdownMenu(
                 expanded = itemMenuExpanded,
                 onDismissRequest = { itemMenuExpanded = false },
-                modifier = Modifier.background(Surface2)
+                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 VaultMenuItem("Copy sound link", PlayfulIcons.Copy) {
                     itemMenuExpanded = false
@@ -436,7 +430,7 @@ private fun VaultRow(
                     itemMenuExpanded = false
                     onSaveToDownloads(entry)
                 }
-                VaultMenuItem("Spew into chat", PlayfulIcons.Play, colour = SpewYellow) {
+                VaultMenuItem("Spew into chat", PlayfulIcons.Play, colour = MaterialTheme.colorScheme.primary) {
                     itemMenuExpanded = false
                     onSpewEntry(entry)
                 }
@@ -452,7 +446,7 @@ private fun VaultRow(
                     itemMenuExpanded = false
                     onToggleSelected()
                 }
-                VaultMenuItem("Delete from vault", PlayfulIcons.Trash, colour = StopRed) {
+                VaultMenuItem("Delete from vault", PlayfulIcons.Trash, colour = MaterialTheme.colorScheme.error) {
                     itemMenuExpanded = false
                     onDeleteEntries(setOf(entry.id))
                 }
@@ -465,7 +459,7 @@ private fun VaultRow(
 private fun VaultMenuItem(
     text: String,
     icon: ImageVector,
-    colour: Color = InkLight,
+    colour: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit,
 ) {
     DropdownMenuItem(

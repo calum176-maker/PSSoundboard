@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -40,13 +41,7 @@ import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.theme.Bricolage
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.FieldBackground
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.Surface1
-import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.spew
 
 private val Categories = listOf("Bug", "Idea", "Looks off")
 
@@ -67,7 +62,7 @@ fun FeedbackDialog(
     var includeDetails by rememberSaveable { mutableStateOf(true) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(28.dp), color = Surface1) {
+        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
             Column(
                 modifier = Modifier
                     .padding(20.dp)
@@ -76,7 +71,7 @@ fun FeedbackDialog(
             ) {
                 Text(
                     text = "Send feedback",
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = BricolageCondensed,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 28.sp
@@ -102,21 +97,21 @@ fun FeedbackDialog(
                         .fillMaxWidth()
                         .heightIn(min = 120.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(FieldBackground)
+                        .background(MaterialTheme.spew.field)
                         .padding(14.dp)
                 ) {
                     if (message.isEmpty()) {
                         Text(
                             "e.g. Tapped Airhorn in the mini-deck and nothing played",
-                            color = InkMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 15.sp
                         )
                     }
                     BasicTextField(
                         value = message,
                         onValueChange = { message = it.take(FeedbackRepository.MAX_MESSAGE_LENGTH) },
-                        textStyle = TextStyle(color = InkLight, fontFamily = Bricolage, fontSize = 16.sp),
-                        cursorBrush = SolidColor(SpewYellow),
+                        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontFamily = Bricolage, fontSize = 16.sp),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 92.dp)
@@ -128,16 +123,16 @@ fun FeedbackDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Surface2)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Include phone details", color = InkLight, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Include phone details", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Text(
                             "App version, phone model, Android version and whether the cable is plugged in",
-                            color = InkMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             lineHeight = 16.sp
                         )
@@ -145,7 +140,7 @@ fun FeedbackDialog(
                     Switch(
                         checked = includeDetails,
                         onCheckedChange = { includeDetails = it },
-                        colors = SwitchDefaults.colors(checkedTrackColor = SpewYellow, checkedThumbColor = Ground)
+                        colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.primary, checkedThumbColor = MaterialTheme.colorScheme.background)
                     )
                 }
 
@@ -155,7 +150,7 @@ fun FeedbackDialog(
                     } else {
                         "This test build can't send directly. Tap Share to pass your report on by message or email."
                     },
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
@@ -181,5 +176,5 @@ fun FeedbackDialog(
 
 @Composable
 private fun Label(text: String) {
-    Text(text, color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Bold)
 }

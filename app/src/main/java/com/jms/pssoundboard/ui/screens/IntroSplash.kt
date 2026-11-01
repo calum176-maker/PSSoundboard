@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,10 +32,6 @@ import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.BuildConfig
 import com.jms.pssoundboard.R
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.SpewYellow
 import com.jms.pssoundboard.ui.theme.rememberReducedMotion
 import kotlinx.coroutines.delay
 
@@ -55,7 +52,7 @@ fun IntroSplash(onFinished: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onFinished)
             .semantics { contentDescription = "Spewboard, version ${BuildConfig.VERSION_NAME}" },
         contentAlignment = Alignment.Center
@@ -74,20 +71,20 @@ fun IntroSplash(onFinished: () -> Unit) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Spewboard",
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = BricolageCondensed,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 46.sp
                 )
                 Text(
                     text = "v${BuildConfig.VERSION_NAME}",
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = "Spew into any voice chat",
-                    color = SpewYellow,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )

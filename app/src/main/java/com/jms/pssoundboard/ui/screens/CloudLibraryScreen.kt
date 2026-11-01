@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,18 +62,11 @@ import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.CableAmber
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.InkOnBlob
 import com.jms.pssoundboard.ui.theme.PadPalette
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.Surface1
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
+import com.jms.pssoundboard.ui.theme.spew
 import com.jms.pssoundboard.ui.theme.spewPulse
 import com.jms.pssoundboard.ui.theme.toComposeColor
 import kotlinx.coroutines.delay
@@ -174,7 +168,7 @@ fun CloudLibraryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -207,7 +201,7 @@ fun CloudLibraryScreen(
                         DropdownMenu(
                             expanded = addMenuExpanded,
                             onDismissRequest = { addMenuExpanded = false },
-                            modifier = Modifier.background(Surface2)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         ) {
                             PlayfulMenuItem("Import a file", PlayfulIcons.Folder) {
                                 addMenuExpanded = false
@@ -240,7 +234,7 @@ fun CloudLibraryScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isSearchingOnline) {
                         CircularProgressIndicator(
-                            color = SpewYellow,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp,
                             modifier = Modifier
                                 .padding(end = 6.dp)
@@ -273,7 +267,7 @@ fun CloudLibraryScreen(
                     (searchQuery.isNotBlank() && searchQuery.equals(query, ignoreCase = true))
                 Box(
                     modifier = Modifier
-                        .border(2.5.dp, if (isSelected) InkLight else Color.Transparent, ChipBlob)
+                        .border(2.5.dp, if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent, ChipBlob)
                         .padding(3.dp)
                 ) {
                     BlobChip(
@@ -300,7 +294,7 @@ fun CloudLibraryScreen(
         ) {
             Text(
                 text = if (searchQuery.isBlank()) "Popular sounds" else "Search results",
-                color = InkLight,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -313,7 +307,7 @@ fun CloudLibraryScreen(
             if (meta.isNotEmpty()) {
                 Text(
                     text = meta.joinToString(" · "),
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -329,15 +323,15 @@ fun CloudLibraryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(2.dp, SpewYellow, CapsuleShape)
-                    .background(Surface2, CapsuleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CapsuleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CapsuleShape)
                     .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = "${selectedItemIds.size} selected",
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.weight(1f)
@@ -360,7 +354,7 @@ fun CloudLibraryScreen(
                     DropdownMenu(
                         expanded = batchMenuExpanded,
                         onDismissRequest = { batchMenuExpanded = false },
-                        modifier = Modifier.background(Surface2)
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     ) {
                         PlayfulMenuItem("Copy all links", PlayfulIcons.Copy) {
                             batchMenuExpanded = false
@@ -416,7 +410,7 @@ fun CloudLibraryScreen(
 
                 CapsuleRow(
                     selected = isSelected,
-                    modifier = if (isSelected) Modifier.border(2.dp, SpewYellow, CapsuleShape) else Modifier
+                    modifier = if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CapsuleShape) else Modifier
                 ) {
                     // While choosing several, each row shows a tick to add or remove it
                     if (selectedItemIds.isNotEmpty()) {
@@ -424,7 +418,7 @@ fun CloudLibraryScreen(
                             icon = PlayfulIcons.Check,
                             contentDescription = if (isSelected) "Deselect ${item.title}" else "Select ${item.title}",
                             onClick = toggleSelection,
-                            colour = if (isSelected) SpewYellow else Surface2
+                            colour = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
                         )
                     }
 
@@ -443,7 +437,7 @@ fun CloudLibraryScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = item.title,
-                            color = InkLight,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             maxLines = 1,
@@ -457,7 +451,7 @@ fun CloudLibraryScreen(
                         }
                         Text(
                             text = listOfNotNull(item.category, source).joinToString(" · "),
-                            color = InkMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -479,7 +473,7 @@ fun CloudLibraryScreen(
                         DropdownMenu(
                             expanded = itemMenuExpanded,
                             onDismissRequest = { itemMenuExpanded = false },
-                            modifier = Modifier.background(Surface2)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         ) {
                             PlayfulMenuItem("Spew into chat", PlayfulIcons.Speaker, highlight = true) {
                                 itemMenuExpanded = false
@@ -516,19 +510,19 @@ fun CloudLibraryScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Surface1, CapsuleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainer, CapsuleShape)
                             .padding(vertical = 14.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = SpewYellow,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
                             text = "Fetching 10 more sounds…",
-                            color = InkLight,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -550,7 +544,7 @@ fun CloudLibraryScreen(
                 item(key = "all_loaded_indicator") {
                     Text(
                         text = "That's all $totalOnlineCount sounds",
-                        color = InkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -563,7 +557,7 @@ fun CloudLibraryScreen(
             item(key = "catalog_footer_note") {
                 Text(
                     text = "Powered by open internet sound directories, 10 results at a time. Every sound you spew is saved to your Spew Vault.",
-                    color = InkMuted.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 14.dp)
@@ -580,7 +574,7 @@ fun CloudLibraryScreen(
         Dialog(onDismissRequest = { customUrlDialogOpen = false }) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = Surface1,
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -591,19 +585,19 @@ fun CloudLibraryScreen(
                 ) {
                     Text(
                         text = "Add from a web link",
-                        color = InkLight,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = BricolageCondensed,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 26.sp
                     )
                     Text(
                         text = "Paste any direct public .mp3, .wav or .ogg link to stream it and equip it to your pads.",
-                        color = InkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
 
-                    Text("Audio link", color = InkMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Audio link", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     PlayfulField(
                         value = directUrlInput,
                         onValueChange = { directUrlInput = it },
@@ -611,7 +605,7 @@ fun CloudLibraryScreen(
                         leadingIcon = PlayfulIcons.Link
                     )
 
-                    Text("Display name", color = InkMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Display name", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     PlayfulField(
                         value = directTitleInput,
                         onValueChange = { directTitleInput = it },
@@ -669,13 +663,13 @@ private fun PlayfulMenuItem(
         text = {
             Text(
                 text = text,
-                color = if (highlight) SpewYellow else InkLight,
+                color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium
             )
         },
         leadingIcon = {
-            Icon(icon, contentDescription = null, tint = if (highlight) SpewYellow else InkMuted, modifier = Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, tint = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         },
         onClick = onClick,
         modifier = Modifier.height(48.dp)
@@ -693,13 +687,13 @@ private fun SearchStatusCard(failed: Boolean, query: String, onRetry: () -> Unit
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .gummy(if (failed) CableAmber else Surface1, ChipBlob),
+                    .gummy(if (failed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainer, ChipBlob),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (failed) PlayfulIcons.Link else PlayfulIcons.Library,
                     contentDescription = null,
-                    tint = if (failed) InkOnBlob else InkMuted,
+                    tint = if (failed) MaterialTheme.spew.onBlob else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp)
                 )
             }

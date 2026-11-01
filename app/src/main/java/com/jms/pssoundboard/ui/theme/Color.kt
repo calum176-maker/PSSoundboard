@@ -3,6 +3,10 @@ package com.jms.pssoundboard.ui.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
+// Screens and dialogs read UI colours from MaterialTheme.colorScheme, or MaterialTheme.spew for the
+// app-only ones (Theme.kt). The named constants they may use directly are the fixed decorative
+// palettes at the bottom of this file, which never change with the theme.
+
 // ---- Playful palette ----------------------------------------------------------------------
 
 val Ground = Color(0xFF14101C)
@@ -32,6 +36,43 @@ val TealBright = Color(0xFFC4B5FD)
 val PanicRed = StopRed
 val ReadyGreen = Color(0xFF3EE06A)
 val WarningAmber = Color(0xFFF59E0B)
+val StopInk = Color(0xFF1F0604)
+val DisabledInk = Color(0xFF8F82A3)
+
+// ---- Fixed decorative palettes -------------------------------------------------------------
+
+/** Pin star colour; matches the mockup's small yellow star. */
+val PinStar = Color(0xFFFFE020)
+
+/** Each voice effect gets its own bright gummy colour (the stored preset colours are too dark for blobs). */
+val PresetColours = mapOf(
+    "natural" to Color(0xFFE6DCF2),
+    "chipmunk" to Color(0xFFFFA400),
+    "deep" to Color(0xFFA46BFF),
+    "demon" to Color(0xFFFF6B1F),
+    "robot" to Color(0xFF4A86FF),
+    "radio" to Color(0xFF3EE06A),
+    "alien" to Color(0xFFFF45D0),
+    "cave" to Color(0xFF16D4F5),
+    "arnold" to Color(0xFF00D9C0),
+    "vader" to Color(0xFFFF3D6E),
+    "morgan" to Color(0xFFFFE020),
+    "batman" to Color(0xFFFF7A6E),
+    "ramsay" to Color(0xFFAEF51A),
+    "yoda" to Color(0xFF3EE06A),
+)
+
+/** Voice FX control colours, one per effect slider. */
+val PitchColour = Color(0xFFFF3D6E)
+val RobotColour = Color(0xFF4A86FF)
+val EchoColour = Color(0xFF3EE06A)
+val DriveColour = Color(0xFFFF6B1F)
+val GainColour = Color(0xFFFFE020)
+val GateColour = Color(0xFF16D4F5)
+val RecordHalo = Color(0xFF2A1620)
+
+/** Clip Creator waveform: the selected trim region behind the bars. */
+val TrimHighlight = Color(0xFF004D4D)
 
 /** Preset pad colors offered in the pad editor. */
 val PadPalette = listOf(

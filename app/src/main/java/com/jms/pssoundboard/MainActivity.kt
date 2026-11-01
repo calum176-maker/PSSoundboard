@@ -22,16 +22,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.jms.pssoundboard.ui.theme.CableAmber
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.InkOnBlob
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
 import android.Manifest
 import android.content.Intent
@@ -73,6 +66,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -95,7 +89,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -115,16 +108,7 @@ import com.jms.pssoundboard.ui.screens.LiveDeckScreen
 import com.jms.pssoundboard.ui.screens.SpewVaultScreen
 import com.jms.pssoundboard.ui.screens.VoiceChangerScreen
 import com.jms.pssoundboard.ui.theme.PSSoundboardTheme
-import com.jms.pssoundboard.ui.theme.PanicRed
-import com.jms.pssoundboard.ui.theme.ReadyGreen
-import com.jms.pssoundboard.ui.theme.SlateBackground
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateSurface
-import com.jms.pssoundboard.ui.theme.SlateText
-import com.jms.pssoundboard.ui.theme.SlateTextMuted
-import com.jms.pssoundboard.ui.theme.Teal
-import com.jms.pssoundboard.ui.theme.TealBright
-import com.jms.pssoundboard.ui.theme.WarningAmber
+import com.jms.pssoundboard.ui.theme.spew
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -293,7 +277,7 @@ fun MainScreen(
     }
 
     Scaffold(
-        containerColor = SlateBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             if (!landscape) {
@@ -341,10 +325,10 @@ fun MainScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        CircularProgressIndicator(color = Teal)
+                        CircularProgressIndicator(color = MaterialTheme.spew.accent)
                         Text(
                             text = "Synthesizing zero-latency audio engine…",
-                            color = SlateTextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -434,8 +418,8 @@ fun MainScreen(
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = SlateSurface,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Teal),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent),
                     shadowElevation = 8.dp
                 ) {
                     Row(
@@ -443,10 +427,10 @@ fun MainScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        CircularProgressIndicator(color = Teal, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = MaterialTheme.spew.accent, modifier = Modifier.size(24.dp))
                         Text(
                             text = busyMessage ?: "",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -535,11 +519,11 @@ private fun TopStatusBar(
     onLaunchOverlay: () -> Unit,
     onFeedback: () -> Unit,
 ) {
-    val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
+    val statusColour = if (loopbackConnected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(start = 18.dp, end = 14.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -582,7 +566,7 @@ private fun FeedbackButton(onFeedback: () -> Unit) {
             .semantics { contentDescription = "Send feedback" },
         contentAlignment = Alignment.Center
     ) {
-        Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkMuted, modifier = Modifier.size(22.dp))
+        Icon(PlayfulIcons.Feedback, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -594,7 +578,7 @@ private fun BottomNavBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 6.dp, vertical = 4.dp)
             .selectableGroup()
@@ -612,19 +596,19 @@ private fun BottomNavBar(
                 Box(
                     modifier = Modifier
                         .size(width = 56.dp, height = 32.dp)
-                        .then(if (selected) Modifier.gummy(SpewYellow, ChipBlob) else Modifier),
+                        .then(if (selected) Modifier.gummy(MaterialTheme.colorScheme.primary, ChipBlob) else Modifier),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (selected) InkOnBlob else InkMuted,
+                        tint = if (selected) MaterialTheme.spew.onBlob else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Text(
                     text = label,
-                    color = if (selected) InkLight else InkMuted,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1
@@ -650,8 +634,8 @@ private fun MiniDeckButton(onLaunchOverlay: () -> Unit) {
         modifier = Modifier
             .size(width = 52.dp, height = 48.dp)
             .then(
-                if (overlayRunning) Modifier.gummy(SpewYellow, miniDeckShape)
-                else Modifier.clip(miniDeckShape).background(Surface2)
+                if (overlayRunning) Modifier.gummy(MaterialTheme.colorScheme.primary, miniDeckShape)
+                else Modifier.clip(miniDeckShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             .clickable(
                 onClickLabel = if (overlayRunning) "Close the mini-deck" else "Float the mini-deck over other apps",
@@ -666,7 +650,7 @@ private fun MiniDeckButton(onLaunchOverlay: () -> Unit) {
         Icon(
             imageVector = PlayfulIcons.MiniDeck,
             contentDescription = null,
-            tint = if (overlayRunning) InkOnBlob else InkLight,
+            tint = if (overlayRunning) MaterialTheme.spew.onBlob else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(22.dp)
         )
     }
@@ -685,7 +669,7 @@ private fun SideNavRail(
         modifier = Modifier
             .width(84.dp)
             .fillMaxHeight()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(vertical = 6.dp)
             .selectableGroup(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -704,14 +688,14 @@ private fun SideNavRail(
                 Box(
                     modifier = Modifier
                         .size(width = 48.dp, height = 26.dp)
-                        .then(if (selected) Modifier.gummy(SpewYellow, ChipBlob) else Modifier),
+                        .then(if (selected) Modifier.gummy(MaterialTheme.colorScheme.primary, ChipBlob) else Modifier),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = if (selected) InkOnBlob else InkMuted, modifier = Modifier.size(20.dp))
+                    Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.spew.onBlob else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
                 Text(
                     text = label,
-                    color = if (selected) InkLight else InkMuted,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     lineHeight = 14.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
@@ -721,7 +705,7 @@ private fun SideNavRail(
         }
         Spacer(modifier = Modifier.weight(1f))
         FeedbackButton(onFeedback = onFeedback)
-        val statusColour = if (loopbackConnected) ReadyGreen else CableAmber
+        val statusColour = if (loopbackConnected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
         Box(
             modifier = Modifier
                 .size(width = 12.dp, height = 11.dp)

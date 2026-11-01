@@ -52,13 +52,11 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -80,33 +78,17 @@ import com.jms.pssoundboard.data.model.PlaybackMode
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
-import com.jms.pssoundboard.ui.theme.Surface1
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.FieldBackground
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
 import com.jms.pssoundboard.ui.theme.PadShape
-import com.jms.pssoundboard.ui.theme.PanicRed
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.SlateBackground
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateText
-import com.jms.pssoundboard.ui.theme.SlateTextMuted
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.StopRed
-import com.jms.pssoundboard.ui.theme.Surface2
-import com.jms.pssoundboard.ui.theme.Teal
-import com.jms.pssoundboard.ui.theme.TealBright
-import com.jms.pssoundboard.ui.theme.WarningAmber
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.padColour
+import com.jms.pssoundboard.ui.theme.spew
 import com.jms.pssoundboard.ui.theme.spewPulse
 import kotlin.math.roundToInt
-
-private val StopInk = Color(0xFF1F0604)
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun LiveDeckScreen(
@@ -159,10 +141,10 @@ fun LiveDeckScreen(
                     .padding(start = 4.dp, top = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Spew Deck", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     text = activeBoard.name,
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = BricolageCondensed,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = titleSize,
@@ -189,7 +171,7 @@ fun LiveDeckScreen(
                     modifier = Modifier
                         .height(44.dp)
                         .clip(ChipBlob)
-                        .background(if (isActive) InkLight else Surface2)
+                        .background(if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
                             if (isActive) managingBoard = board else onSelectBoard(board.id)
                         }
@@ -199,7 +181,7 @@ fun LiveDeckScreen(
                 ) {
                     Text(
                         text = board.name,
-                        color = if (isActive) Ground else InkLight,
+                        color = if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
                         fontSize = 15.sp,
                         maxLines = 1
@@ -209,10 +191,10 @@ fun LiveDeckScreen(
                             modifier = Modifier
                                 .size(30.dp)
                                 .clip(CircleShape)
-                                .background(Ground.copy(alpha = 0.12f)),
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(PlayfulIcons.Edit, contentDescription = null, tint = Ground, modifier = Modifier.size(15.dp))
+                            Icon(PlayfulIcons.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(15.dp))
                         }
                     }
                 }
@@ -222,12 +204,12 @@ fun LiveDeckScreen(
                     modifier = Modifier
                         .size(width = 48.dp, height = 44.dp)
                         .clip(CircleShape)
-                        .background(Surface2)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         .clickable(onClickLabel = "Add a deck") { isAddingBoard = true }
                         .semantics { contentDescription = "Add a deck" },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(PlayfulIcons.Plus, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
+                    Icon(PlayfulIcons.Plus, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -240,26 +222,26 @@ fun LiveDeckScreen(
                 .fillMaxWidth()
                 .height(52.dp)
                 .clip(RoundedCornerShape(26.dp))
-                .background(FieldBackground)
+                .background(MaterialTheme.spew.field)
                 .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Volume", color = InkMuted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("Volume", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Slider(
                 value = gain,
                 onValueChange = onSetGain,
                 valueRange = 0.10f..1.00f,
                 colors = SliderDefaults.colors(
-                    thumbColor = SpewYellow,
-                    activeTrackColor = SpewYellow,
-                    inactiveTrackColor = Surface2
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = "${(gain * 100).roundToInt()}%",
-                color = InkLight,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
@@ -347,16 +329,16 @@ fun LiveDeckScreen(
             Row(
                 modifier = Modifier
                     .height(64.dp)
-                    .gummy(StopRed, PadShape.PEBBLE.shape)
+                    .gummy(MaterialTheme.colorScheme.error, PadShape.PEBBLE.shape)
                     .clickable(onClickLabel = "Stop all sounds", role = Role.Button) { onStopAll() }
                     .padding(horizontal = 28.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(PlayfulIcons.Stop, contentDescription = null, tint = StopInk, modifier = Modifier.size(18.dp))
+                Icon(PlayfulIcons.Stop, contentDescription = null, tint = MaterialTheme.spew.onStop, modifier = Modifier.size(18.dp))
                 Text(
                     text = "Stop all",
-                    color = StopInk,
+                    color = MaterialTheme.spew.onStop,
                     fontFamily = BricolageCondensed,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 21.sp
@@ -371,8 +353,8 @@ fun LiveDeckScreen(
         Dialog(onDismissRequest = { managingBoard = null }) {
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = SlateBackground,
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Teal.copy(alpha = 0.7f))
+                color = MaterialTheme.colorScheme.background,
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.spew.accent.copy(alpha = 0.7f))
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -380,7 +362,7 @@ fun LiveDeckScreen(
                 ) {
                     Text(
                         text = "MANAGE DECK: ${board.name}",
-                        color = Teal,
+                        color = MaterialTheme.spew.accent,
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp
                     )
@@ -391,12 +373,12 @@ fun LiveDeckScreen(
                         label = { Text("Deck Name") },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = SlateText,
-                            unfocusedTextColor = SlateText,
-                            focusedBorderColor = Teal,
-                            unfocusedBorderColor = SlateOutline,
-                            focusedLabelColor = Teal,
-                            unfocusedLabelColor = SlateTextMuted
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedBorderColor = MaterialTheme.spew.accent,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.spew.accent,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -410,7 +392,7 @@ fun LiveDeckScreen(
                                 onRenameBoard(board.id, editName)
                                 managingBoard = null
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.spew.accent),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text("Save Name")
@@ -421,7 +403,7 @@ fun LiveDeckScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(SlateOutline)
+                            .background(MaterialTheme.colorScheme.outline)
                     )
 
                     // Reset & Clear Options
@@ -434,8 +416,8 @@ fun LiveDeckScreen(
                                 onClearBoard(board.id)
                                 managingBoard = null
                             },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = WarningAmber),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, WarningAmber.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.spew.warning),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.warning.copy(alpha = 0.6f)),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -447,8 +429,8 @@ fun LiveDeckScreen(
                                 onResetBoard(board.id)
                                 managingBoard = null
                             },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TealBright),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Teal.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent.copy(alpha = 0.6f)),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -463,7 +445,7 @@ fun LiveDeckScreen(
                                 onDeleteBoard(board.id)
                                 managingBoard = null
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = PanicRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -484,7 +466,7 @@ fun LiveDeckScreen(
                     .fillMaxWidth()
                     .padding(8.dp),
                 shape = RoundedCornerShape(28.dp),
-                color = Surface1
+                color = MaterialTheme.colorScheme.surfaceContainer
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -492,7 +474,7 @@ fun LiveDeckScreen(
                 ) {
                     Text(
                         text = "New deck",
-                        color = InkLight,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = BricolageCondensed,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 28.sp
@@ -609,14 +591,14 @@ private fun EditPadsToggle(editing: Boolean, onToggle: () -> Unit) {
         modifier = Modifier
             .height(48.dp)
             .clip(ChipBlob)
-            .background(if (editing) SpewYellow else Surface2)
+            .background(if (editing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(role = Role.Button, onClickLabel = if (editing) "Stop editing pads" else "Edit pads") { onToggle() }
             .semantics { contentDescription = if (editing) "Editing pads, done" else "Edit pads" }
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        val ink = if (editing) Ground else InkLight
+        val ink = if (editing) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface
         Icon(if (editing) PlayfulIcons.Check else PlayfulIcons.Edit, contentDescription = null, tint = ink, modifier = Modifier.size(16.dp))
         Text(
             text = if (editing) "Done" else "Edit pads",
@@ -662,8 +644,8 @@ private fun TactilePad(
 
     val hasSound = pad.filePath != null
     val shape = PadShape.of(pad.shape, pad.slot).shape
-    val colour = if (hasSound) padColour(pad.colorHex) else Surface2
-    val ink = if (hasSound) inkOn(colour) else InkMuted
+    val colour = if (hasSound) padColour(pad.colorHex) else MaterialTheme.colorScheme.surfaceContainerHigh
+    val ink = if (hasSound) inkOn(colour) else MaterialTheme.colorScheme.onSurfaceVariant
     val description = buildString {
         append("Pad ${pad.slot + 1}, ")
         append(if (hasSound) pad.title else "empty")
@@ -682,7 +664,7 @@ private fun TactilePad(
             .padding(if (isHero) 4.dp else 2.dp)
             .scale(pressScale)
             .spewPulse(isPlaying, colour, shape)
-            .then(if (hasSound) Modifier.gummy(colour, shape) else Modifier.clip(shape).background(Surface2))
+            .then(if (hasSound) Modifier.gummy(colour, shape) else Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh))
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = description
@@ -730,7 +712,7 @@ private fun TactilePad(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Ground.copy(alpha = 0.14f))
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.14f))
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
