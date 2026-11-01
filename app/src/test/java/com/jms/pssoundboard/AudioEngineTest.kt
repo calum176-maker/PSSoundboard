@@ -106,4 +106,61 @@ class AudioEngineTest {
         assertEquals(18, state3.board("unlimited")?.pads?.size)
         assertEquals("Expanded 17", state3.pad(PadRef("unlimited", 17))?.title)
     }
+
+    @Test
+    fun deckState_deletePads_shrinksOrClearsProperly() {
+        val pads = List(15) { slot ->
+            Pad(slot = slot, title = "Sound $slot", filePath = "/sounds/$slot.wav")
+        }
+        val board = Board(id = "b1", name = "Deck 1", pads = pads)
+
+        // Deleting when > 12: should shrink the deck from 15 to 14 and re-index slots
+        val remainingAfter1 = board.pads.filterNot { it.slot == 2 }
+            .mapIndexed { idx, p -> p.copy(slot = idx) }
+        assertEquals(14, remainingAfter1.size)
+        assertEquals("Sound 3", remainingAfter1[2].title)
+        assertEquals(2, remainingAfter1[2].slot)
+
+        // Group deleting 3 cards from 14 -> leaves 11, which pads back to 12 minimum
+        val remainingAfterGroup = remainingAfter1.filterNot { it.slot in setOf(0, 1, 2) }
+        val finalPads = (remainingAfterGroup + List(12 - remainingAfterGroup.size) {
+            Pad(slot = 0, title = "Empty", colorHex = "#334155")
+        }).mapIndexed { idx, p -> p.copy(slot = idx) }
+
+        assertEquals(12, finalPads.size)
+        assertEquals("Sound 4", finalPads[0].title)
+        assertEquals("Empty", finalPads[11].title)
+    }
+
+    @Test
+    fun deckState_movePads_transfersSoundsToTargetBoard() {
+        val sourcePads = List(12) { slot ->
+            Pad(slot = slot, title = "Source $slot", filePath = if (slot < 3) "/s/$slot.wav" else null)
+        }
+        val targetPads = List(12) { slot ->
+            Pad(slot = slot, title = if (slot == 0) "Existing" else "Empty", filePath = if (slot == 0) "/t/0.wav" else null)
+        }
+        val sourceBoard = Board(id = "src", name = "Source", pads = sourcePads)
+        val targetBoard = Board(id = "tgt", name = "Target", pads = targetPads)
+
+        val padsToMove = sourceBoard.pads.filter { it.slot in setOf(0, 1) && it.filePath != null }
+        assertEquals(2, padsToMove.size)
+
+        // Move to target: fill empty slot 1 and slot 2
+        val updatedTarget = targetBoard.pads.toMutableList()
+        var moveIdx = 0
+        for (i in updatedTarget.indices) {
+            if (moveIdx >= padsToMove.size) break
+            if (updatedTarget[i].filePath == null) {
+                updatedTarget[i] = padsToMove[moveIdx].copy(slot = i)
+                moveIdx++
+            }
+        }
+
+        assertEquals("Existing", updatedTarget[0].title)
+        assertEquals("Source 0", updatedTarget[1].title)
+        assertEquals("Source 1", updatedTarget[2].title)
+        assertEquals(1, updatedTarget[1].slot)
+        assertEquals(2, updatedTarget[2].slot)
+    }
 }

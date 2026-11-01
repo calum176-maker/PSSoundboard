@@ -361,6 +361,13 @@ fun MainScreen(
                         onReleasePad = { ref, pad -> viewModel.releasePad(ref, pad) },
                         onEditPad = { bId, pad -> editingPadInfo = bId to pad },
                         onAddCards = { bId -> viewModel.addCardsToBoard(bId) },
+                        onDeletePad = { bId, slot -> viewModel.deletePad(bId, slot) },
+                        onDeleteMultiplePads = { bId, slots -> viewModel.deleteMultiplePads(bId, slots) },
+                        onMovePadsToBoard = { fromId, toId, slots -> viewModel.movePadsToBoard(fromId, toId, slots) },
+                        onCreateBoardAndMovePads = { name, fromId, slots -> viewModel.createBoardAndMovePads(name, fromId, slots) },
+                        onSharePads = { pads -> viewModel.sharePads(pads) },
+                        onUpdatePadsMode = { bId, slots, mode -> viewModel.updatePadsPlaybackMode(bId, slots, mode) },
+                        onUpdatePadsColor = { bId, slots, color -> viewModel.updatePadsColor(bId, slots, color) },
                         onSetGain = { viewModel.setGain(it) },
                         onStopAll = { viewModel.stopAll() }
                     )

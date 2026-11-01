@@ -279,6 +279,73 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deletePad(boardId: String, slot: Int) {
+        val pad = deck.value.board(boardId)?.pads?.find { it.slot == slot }
+        val label = if (pad?.filePath != null) "\"${pad.title}\"" else "Card ${slot + 1}"
+        withDeckUndo("Deleted $label") {
+            repository.deletePad(boardId, slot)
+        }
+    }
+
+    fun deleteMultiplePads(boardId: String, slots: Set<Int>) {
+        if (slots.isEmpty()) return
+        withDeckUndo("Deleted ${slots.size} cards") {
+            repository.deleteMultiplePads(boardId, slots)
+        }
+    }
+
+    fun movePadsToBoard(fromBoardId: String, toBoardId: String, slots: Set<Int>) {
+        if (slots.isEmpty()) return
+        val targetName = deck.value.board(toBoardId)?.name ?: "Deck"
+        withDeckUndo("Moved ${slots.size} cards to \"$targetName\"") {
+            repository.movePadsToBoard(fromBoardId, toBoardId, slots)
+        }
+    }
+
+    fun createBoardAndMovePads(name: String, fromBoardId: String, slots: Set<Int>) {
+        if (slots.isEmpty()) return
+        val boardName = name.ifBlank { "New Soundboard" }
+        withDeckUndo("Moved ${slots.size} cards to \"$boardName\"") {
+            repository.createBoardAndMovePads(boardName, fromBoardId, slots)
+        }
+    }
+
+    fun updatePadsPlaybackMode(boardId: String, slots: Set<Int>, mode: PlaybackMode) {
+        if (slots.isEmpty()) return
+        withDeckUndo("Updated mode for ${slots.size} cards") {
+            repository.updatePadsPlaybackMode(boardId, slots, mode)
+        }
+    }
+
+    fun updatePadsColor(boardId: String, slots: Set<Int>, colorHex: String) {
+        if (slots.isEmpty()) return
+        withDeckUndo("Updated color for ${slots.size} cards") {
+            repository.updatePadsColor(boardId, slots, colorHex)
+        }
+    }
+
+    fun sharePads(pads: List<Pad>) {
+        val nonEmpties = pads.filter { it.filePath != null }
+        if (nonEmpties.isEmpty()) {
+            viewModelScope.launch { _messages.emit("No audio clips on selected cards to share") }
+            return
+        }
+        if (nonEmpties.size == 1) {
+            val pad = nonEmpties.first()
+            shareSound(title = pad.title, localFilePath = pad.filePath)
+            return
+        }
+        val items = nonEmpties.map { pad ->
+            LibraryItem(
+                id = "pad_${pad.slot}",
+                title = pad.title,
+                category = "Soundboard",
+                localUri = pad.filePath
+            )
+        }
+        shareMultipleLibraryItems(items)
+    }
+
     fun resetBoardToDefaults(boardId: String) {
         val name = deck.value.board(boardId)?.name ?: "Deck"
         withDeckUndo("Reset \"$name\" to its default sounds") { repository.resetBoardToDefaults(boardId) }

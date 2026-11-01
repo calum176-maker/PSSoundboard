@@ -18,6 +18,7 @@ import com.jms.pssoundboard.data.model.DeckState
 import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
+import com.jms.pssoundboard.data.model.PlaybackMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -167,6 +168,131 @@ class SoundRepository(
                 }
                 b.copy(pads = b.pads + newPads)
             }
+        })
+    }
+
+    fun deletePad(boardId: String, slot: Int) = mutate { s ->
+        s.copy(boards = s.boards.map { b ->
+            if (b.id != boardId) b
+            else {
+                if (b.pads.size > PADS_PER_BOARD) {
+                    val updated = b.pads.filterNot { it.slot == slot }
+                        .mapIndexed { idx, p -> p.copy(slot = idx) }
+                    b.copy(pads = updated)
+                } else {
+                    b.copy(pads = b.pads.map { p ->
+                        if (p.slot == slot) Pad(slot = slot, title = "Empty", colorHex = "#334155")
+                        else p
+                    })
+                }
+            }
+        })
+    }
+
+    fun deleteMultiplePads(boardId: String, slots: Set<Int>) = mutate { s ->
+        if (slots.isEmpty()) return@mutate s
+        s.copy(boards = s.boards.map { b ->
+            if (b.id != boardId) b
+            else {
+                val remaining = b.pads.filterNot { it.slot in slots }
+                val finalPads = if (remaining.size < PADS_PER_BOARD) {
+                    val needed = PADS_PER_BOARD - remaining.size
+                    remaining + List(needed) { Pad(slot = 0, title = "Empty", colorHex = "#334155") }
+                } else {
+                    remaining
+                }
+                b.copy(pads = finalPads.mapIndexed { idx, p -> p.copy(slot = idx) })
+            }
+        })
+    }
+
+    fun movePadsToBoard(fromBoardId: String, toBoardId: String, slots: Set<Int>) = mutate { s ->
+        if (fromBoardId == toBoardId || slots.isEmpty()) return@mutate s
+        val fromBoard = s.board(fromBoardId) ?: return@mutate s
+        val toBoard = s.board(toBoardId) ?: return@mutate s
+        val padsToMove = fromBoard.pads.filter { it.slot in slots && it.filePath != null }
+        if (padsToMove.isEmpty()) return@mutate s
+
+        // 1. In target board, fill empty pads first, then append new pads if needed
+        val targetPads = toBoard.pads.toMutableList()
+        var moveIdx = 0
+        for (i in targetPads.indices) {
+            if (moveIdx >= padsToMove.size) break
+            if (targetPads[i].filePath == null) {
+                val source = padsToMove[moveIdx]
+                targetPads[i] = source.copy(slot = i)
+                moveIdx++
+            }
+        }
+        while (moveIdx < padsToMove.size) {
+            val source = padsToMove[moveIdx]
+            val newSlot = targetPads.size
+            targetPads.add(source.copy(slot = newSlot))
+            moveIdx++
+        }
+
+        // 2. Remove or clear moved pads from source board
+        val remaining = fromBoard.pads.filterNot { it.slot in slots }
+        val updatedFromPads = if (remaining.size < PADS_PER_BOARD) {
+            val needed = PADS_PER_BOARD - remaining.size
+            remaining + List(needed) { Pad(slot = 0, title = "Empty", colorHex = "#334155") }
+        } else {
+            remaining
+        }.mapIndexed { idx, p -> p.copy(slot = idx) }
+
+        s.copy(boards = s.boards.map { b ->
+            when (b.id) {
+                fromBoardId -> b.copy(pads = updatedFromPads)
+                toBoardId -> b.copy(pads = targetPads)
+                else -> b
+            }
+        })
+    }
+
+    fun createBoardAndMovePads(name: String, fromBoardId: String, slots: Set<Int>) = mutate { s ->
+        val fromBoard = s.board(fromBoardId) ?: return@mutate s
+        val padsToMove = fromBoard.pads.filter { it.slot in slots && it.filePath != null }
+        val newId = "board_" + System.currentTimeMillis()
+
+        val initialPads = List(maxOf(PADS_PER_BOARD, padsToMove.size)) { idx ->
+            if (idx < padsToMove.size) {
+                padsToMove[idx].copy(slot = idx)
+            } else {
+                Pad(slot = idx, title = "Empty", colorHex = "#334155")
+            }
+        }
+        val newBoard = Board(
+            id = newId,
+            name = name.ifBlank { "Deck ${s.boards.size + 1}" },
+            pads = initialPads
+        )
+
+        val remaining = fromBoard.pads.filterNot { it.slot in slots }
+        val updatedFromPads = if (remaining.size < PADS_PER_BOARD) {
+            val needed = PADS_PER_BOARD - remaining.size
+            remaining + List(needed) { Pad(slot = 0, title = "Empty", colorHex = "#334155") }
+        } else {
+            remaining
+        }.mapIndexed { idx, p -> p.copy(slot = idx) }
+
+        s.copy(
+            boards = s.boards.map { if (it.id == fromBoardId) it.copy(pads = updatedFromPads) else it } + newBoard
+        )
+    }
+
+    fun updatePadsPlaybackMode(boardId: String, slots: Set<Int>, mode: PlaybackMode) = mutate { s ->
+        if (slots.isEmpty()) return@mutate s
+        s.copy(boards = s.boards.map { b ->
+            if (b.id != boardId) b
+            else b.copy(pads = b.pads.map { if (it.slot in slots) it.copy(mode = mode) else it })
+        })
+    }
+
+    fun updatePadsColor(boardId: String, slots: Set<Int>, colorHex: String) = mutate { s ->
+        if (slots.isEmpty()) return@mutate s
+        s.copy(boards = s.boards.map { b ->
+            if (b.id != boardId) b
+            else b.copy(pads = b.pads.map { if (it.slot in slots) it.copy(colorHex = colorHex) else it })
         })
     }
 

@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +59,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +84,7 @@ import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
 import com.jms.pssoundboard.ui.components.CapsuleShape
+import com.jms.pssoundboard.ui.components.IconBlobButton
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
@@ -112,6 +115,13 @@ fun LiveDeckScreen(
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
     onAddCards: (boardId: String) -> Unit = {},
+    onDeletePad: (boardId: String, slot: Int) -> Unit = { _, _ -> },
+    onDeleteMultiplePads: (boardId: String, slots: Set<Int>) -> Unit = { _, _ -> },
+    onMovePadsToBoard: (fromBoardId: String, toBoardId: String, slots: Set<Int>) -> Unit = { _, _, _ -> },
+    onCreateBoardAndMovePads: (name: String, fromBoardId: String, slots: Set<Int>) -> Unit = { _, _, _ -> },
+    onSharePads: (pads: List<Pad>) -> Unit = {},
+    onUpdatePadsMode: (boardId: String, slots: Set<Int>, mode: PlaybackMode) -> Unit = { _, _, _ -> },
+    onUpdatePadsColor: (boardId: String, slots: Set<Int>, colorHex: String) -> Unit = { _, _, _ -> },
     onSetGain: (Float) -> Unit,
     onStopAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -126,6 +136,16 @@ fun LiveDeckScreen(
     val activeIndex = deckState.boards.indexOfFirst { it.id == activeBoard.id }.coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = activeIndex) { deckState.boards.size }
     val currentBoard = deckState.boards.getOrNull(pagerState.currentPage) ?: activeBoard
+
+    var selectedPadSlots by remember(currentBoard.id) { mutableStateOf(setOf<Int>()) }
+    var movingPadsDialog by remember { mutableStateOf(false) }
+    var colorPickerDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(editingPads) {
+        if (!editingPads) {
+            selectedPadSlots = emptySet()
+        }
+    }
 
     // Keep pager synchronized when activeBoardId changes externally (e.g. from dropdown or mini-deck)
     LaunchedEffect(activeBoard.id, deckState.boards.size) {
@@ -381,10 +401,15 @@ fun LiveDeckScreen(
                             playingPads = playingPads,
                             landscape = true,
                             editingPads = editingPads,
+                            selectedPadSlots = if (board.id == currentBoard.id) selectedPadSlots else emptySet(),
                             onPressPad = onPressPad,
                             onReleasePad = onReleasePad,
                             onEditPad = onEditPad,
                             onAddCards = onAddCards,
+                            onDeletePad = { slot -> onDeletePad(board.id, slot) },
+                            onToggleSelectPad = { slot ->
+                                selectedPadSlots = if (slot in selectedPadSlots) selectedPadSlots - slot else selectedPadSlots + slot
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -417,10 +442,15 @@ fun LiveDeckScreen(
                             playingPads = playingPads,
                             landscape = false,
                             editingPads = editingPads,
+                            selectedPadSlots = if (board.id == currentBoard.id) selectedPadSlots else emptySet(),
                             onPressPad = onPressPad,
                             onReleasePad = onReleasePad,
                             onEditPad = onEditPad,
                             onAddCards = onAddCards,
+                            onDeletePad = { slot -> onDeletePad(board.id, slot) },
+                            onToggleSelectPad = { slot ->
+                                selectedPadSlots = if (slot in selectedPadSlots) selectedPadSlots - slot else selectedPadSlots + slot
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -460,6 +490,159 @@ fun LiveDeckScreen(
                     color = MaterialTheme.spew.onStop,
                     style = MaterialTheme.typography.titleLarge
                 )
+            }
+        }
+
+        // Floating Batch Action Bar when editing decks and 1 or more cards are selected
+        AnimatedVisibility(
+            visible = editingPads && selectedPadSlots.isNotEmpty(),
+            modifier = if (landscape) {
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 24.dp, bottom = 18.dp)
+            } else {
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 74.dp, start = 14.dp, end = 14.dp)
+            },
+            enter = scaleIn(spring(dampingRatio = 0.55f, stiffness = 600f)) + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
+            Surface(
+                shape = RoundedCornerShape(26.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 8.dp,
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                modifier = if (landscape) Modifier.width(380.dp).height(54.dp) else Modifier.fillMaxWidth().height(54.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "${selectedPadSlots.size} selected",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(start = 6.dp)
+                            .weight(1f)
+                    )
+
+                    IconBlobButton(
+                        icon = PlayfulIcons.Trash,
+                        contentDescription = "Delete selected cards",
+                        colour = MaterialTheme.colorScheme.error,
+                        onClick = {
+                            onDeleteMultiplePads(currentBoard.id, selectedPadSlots)
+                            selectedPadSlots = emptySet()
+                        }
+                    )
+
+                    IconBlobButton(
+                        icon = PlayfulIcons.Folder,
+                        contentDescription = "Move selected cards to another soundboard",
+                        colour = MaterialTheme.colorScheme.primary,
+                        onClick = { movingPadsDialog = true }
+                    )
+
+                    IconBlobButton(
+                        icon = PlayfulIcons.Share,
+                        contentDescription = "Share selected cards",
+                        colour = MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            val pads = currentBoard.pads.filter { it.slot in selectedPadSlots }
+                            onSharePads(pads)
+                        }
+                    )
+
+                    var overflowMenuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        IconBlobButton(
+                            icon = PlayfulIcons.More,
+                            contentDescription = "More actions for selected cards",
+                            onClick = { overflowMenuExpanded = true }
+                        )
+                        DropdownMenu(
+                            expanded = overflowMenuExpanded,
+                            onDismissRequest = { overflowMenuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Select all (${currentBoard.pads.size})") },
+                                leadingIcon = { Icon(PlayfulIcons.Check, null, modifier = Modifier.size(16.dp)) },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    selectedPadSlots = currentBoard.pads.map { it.slot }.toSet()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Deselect all") },
+                                leadingIcon = { Icon(PlayfulIcons.Close, null, modifier = Modifier.size(16.dp)) },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    selectedPadSlots = emptySet()
+                                }
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
+                                    .padding(vertical = 2.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Tap mode (One-Shot)") },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    onUpdatePadsMode(currentBoard.id, selectedPadSlots, PlaybackMode.ONE_SHOT)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Hold to play mode") },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    onUpdatePadsMode(currentBoard.id, selectedPadSlots, PlaybackMode.HOLD_TO_PLAY)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Restart on spam mode") },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    onUpdatePadsMode(currentBoard.id, selectedPadSlots, PlaybackMode.RESTART_ON_SPAM)
+                                }
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(1.dp)
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
+                                    .padding(vertical = 2.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Change card color…") },
+                                leadingIcon = { Icon(PlayfulIcons.Edit, null, modifier = Modifier.size(16.dp)) },
+                                onClick = {
+                                    overflowMenuExpanded = false
+                                    colorPickerDialog = true
+                                }
+                            )
+                        }
+                    }
+
+                    IconBlobButton(
+                        icon = PlayfulIcons.Close,
+                        contentDescription = "Clear selection",
+                        onClick = { selectedPadSlots = emptySet() }
+                    )
+                }
             }
         }
     }
@@ -619,6 +802,211 @@ fun LiveDeckScreen(
             }
         }
     }
+
+    // Move Selected Pads to Another Deck Dialog
+    if (movingPadsDialog) {
+        var createNewDeckInMove by remember { mutableStateOf(false) }
+        var newDeckNameInMove by remember { mutableStateOf("") }
+        val otherBoards = deckState.boards.filterNot { it.id == currentBoard.id }
+
+        Dialog(onDismissRequest = { movingPadsDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Move ${selectedPadSlots.size} card(s) to:",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (!createNewDeckInMove) {
+                        if (otherBoards.isNotEmpty()) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                otherBoards.forEach { targetBoard ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                            .clickable {
+                                                onMovePadsToBoard(currentBoard.id, targetBoard.id, selectedPadSlots)
+                                                selectedPadSlots = emptySet()
+                                                movingPadsDialog = false
+                                            }
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = targetBoard.name,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = "${targetBoard.pads.count { it.filePath != null }} sounds",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = "No other soundboards exist yet.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SoftButton(
+                                text = "Cancel",
+                                onClick = { movingPadsDialog = false },
+                                light = false,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(
+                                onClick = { createNewDeckInMove = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1.3f)
+                            ) {
+                                Text("+ New soundboard")
+                            }
+                        }
+                    } else {
+                        PlayfulField(
+                            value = newDeckNameInMove,
+                            onValueChange = { newDeckNameInMove = it },
+                            placeholder = "New soundboard name"
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SoftButton(
+                                text = "Back",
+                                onClick = { createNewDeckInMove = false },
+                                light = false,
+                                modifier = Modifier.weight(1f)
+                            )
+                            SpewButton(
+                                label = "Create & Move",
+                                contentDescription = "Create new soundboard and move selected cards",
+                                onClick = {
+                                    onCreateBoardAndMovePads(
+                                        newDeckNameInMove.ifBlank { "New Deck" },
+                                        currentBoard.id,
+                                        selectedPadSlots
+                                    )
+                                    selectedPadSlots = emptySet()
+                                    movingPadsDialog = false
+                                },
+                                modifier = Modifier.weight(1.3f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Change Color of Selected Cards Dialog
+    if (colorPickerDialog) {
+        val palette = listOf(
+            "#008080", "#06B6D4", "#3B82F6", "#6366F1", "#A855F7",
+            "#EC4899", "#F97316", "#EAB308", "#22C55E", "#334155"
+        )
+        Dialog(onDismissRequest = { colorPickerDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Pick color for ${selectedPadSlots.size} card(s)",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        palette.take(5).forEach { hex ->
+                            val col = padColour(hex)
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(col)
+                                    .clickable {
+                                        onUpdatePadsColor(currentBoard.id, selectedPadSlots, hex)
+                                        colorPickerDialog = false
+                                    }
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        palette.drop(5).forEach { hex ->
+                            val col = padColour(hex)
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(col)
+                                    .clickable {
+                                        onUpdatePadsColor(currentBoard.id, selectedPadSlots, hex)
+                                        colorPickerDialog = false
+                                    }
+                            )
+                        }
+                    }
+
+                    SoftButton(
+                        text = "Cancel",
+                        onClick = { colorPickerDialog = false },
+                        light = false,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -634,10 +1022,13 @@ private fun PadGrid(
     playingPads: Set<String>,
     landscape: Boolean,
     editingPads: Boolean,
+    selectedPadSlots: Set<Int>,
     onPressPad: (PadRef, Pad) -> Unit,
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
     onAddCards: (boardId: String) -> Unit,
+    onDeletePad: (slot: Int) -> Unit,
+    onToggleSelectPad: (slot: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val gap = 8.dp
@@ -673,6 +1064,7 @@ private fun PadGrid(
             val padRef = PadRef(board.id, pad.slot)
             val isHero = pad.slot == heroSlot && !landscape
             val cellHeight = if (isHero) 180.dp else 104.dp
+            val isSelected = pad.slot in selectedPadSlots
 
             TactilePad(
                 padRef = padRef,
@@ -681,9 +1073,13 @@ private fun PadGrid(
                 isPlaying = padRef.key in playingPads,
                 isHero = isHero,
                 editing = editingPads,
+                isSelected = isSelected,
+                anySelected = selectedPadSlots.isNotEmpty(),
                 onPress = { onPressPad(padRef, pad) },
                 onRelease = { onReleasePad(padRef, pad) },
                 onEdit = { onEditPad(board.id, pad) },
+                onDelete = { onDeletePad(pad.slot) },
+                onToggleSelect = { onToggleSelectPad(pad.slot) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(cellHeight)
@@ -778,9 +1174,13 @@ private fun TactilePad(
     isPlaying: Boolean,
     isHero: Boolean,
     editing: Boolean,
+    isSelected: Boolean = false,
+    anySelected: Boolean = false,
     onPress: () -> Unit,
     onRelease: () -> Unit,
     onEdit: () -> Unit,
+    onDelete: () -> Unit = {},
+    onToggleSelect: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var isPressed by remember(padRef.key) { mutableStateOf(false) }
@@ -794,6 +1194,8 @@ private fun TactilePad(
     val currentOnPress by rememberUpdatedState(onPress)
     val currentOnRelease by rememberUpdatedState(onRelease)
     val currentOnEdit by rememberUpdatedState(onEdit)
+    val currentOnDelete by rememberUpdatedState(onDelete)
+    val currentOnToggleSelect by rememberUpdatedState(onToggleSelect)
 
     val hasSound = pad.filePath != null
     val shape = PadShape.of(pad.shape, pad.slot).shape
@@ -805,6 +1207,7 @@ private fun TactilePad(
         if (hasSound) append(", ${pad.mode.shortLabel}")
         if (isFavorite) append(", favourite")
         if (isPlaying) append(", spewing")
+        if (isSelected) append(", selected")
     }
     val modeLabel = when {
         editing -> "Edit"
@@ -812,18 +1215,25 @@ private fun TactilePad(
         else -> pad.mode.shortLabel
     }
 
+    val borderMod = if (isSelected) {
+        Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, shape)
+    } else {
+        Modifier
+    }
+
     Box(
         modifier = modifier
             .padding(if (isHero) 4.dp else 2.dp)
             .scale(pressScale)
             .spewPulse(isPlaying, colour, shape)
+            .then(borderMod)
             .then(if (hasSound) Modifier.gummy(colour, shape) else Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh))
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = description
                 if (editing) {
-                    onClick(label = "Edit pad") {
-                        currentOnEdit()
+                    onClick(label = if (anySelected) "Toggle select pad" else "Edit pad") {
+                        if (anySelected) currentOnToggleSelect() else currentOnEdit()
                         true
                     }
                 } else {
@@ -834,8 +1244,7 @@ private fun TactilePad(
                     }
                 }
             }
-            // No long-press here: it would clash with Hold mode, which loops for as long as the pad is held.
-            .pointerInput(padRef.key, editing) {
+            .pointerInput(padRef.key, editing, anySelected) {
                 if (editing) {
                     detectTapGestures(
                         onPress = {
@@ -843,7 +1252,10 @@ private fun TactilePad(
                             tryAwaitRelease()
                             isPressed = false
                         },
-                        onTap = { currentOnEdit() }
+                        onTap = {
+                            if (anySelected) currentOnToggleSelect()
+                            else currentOnEdit()
+                        }
                     )
                 } else {
                     detectTapGestures(
@@ -866,7 +1278,8 @@ private fun TactilePad(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.background.copy(alpha = 0.14f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .then(if (editing) Modifier.padding(horizontal = 26.dp) else Modifier),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -892,7 +1305,10 @@ private fun TactilePad(
                 Text(modeLabel, color = ink, style = MaterialTheme.typography.labelMedium)
             }
         } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = if (editing) Modifier.padding(top = 10.dp) else Modifier
+            ) {
                 PadLabel(
                     text = if (hasSound) pad.title else "Empty",
                     style = TextStyle(
@@ -911,6 +1327,66 @@ private fun TactilePad(
                         text = modeLabel,
                         color = ink,
                         style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+
+        // When in deck edit mode, show the '✕' delete button in top-left and select button in top-right
+        if (editing) {
+            // Top-Left: Small '✕' button to delete / clear this individual card
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 2.dp, start = 2.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error)
+                    .pointerInput(padRef.key) {
+                        detectTapGestures(onTap = { currentOnDelete() })
+                    }
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "Delete card ${pad.slot + 1}"
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PlayfulIcons.Close,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+
+            // Top-Right: Selection checkbox button to toggle group selection
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 2.dp, end = 2.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.9f))
+                    .border(
+                        width = 1.5.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
+                        shape = CircleShape
+                    )
+                    .pointerInput(padRef.key, isSelected) {
+                        detectTapGestures(onTap = { currentOnToggleSelect() })
+                    }
+                    .semantics {
+                        role = Role.Checkbox
+                        contentDescription = if (isSelected) "Card ${pad.slot + 1} selected" else "Select card ${pad.slot + 1}"
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = PlayfulIcons.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.spew.onBlob,
+                        modifier = Modifier.size(13.dp)
                     )
                 }
             }
