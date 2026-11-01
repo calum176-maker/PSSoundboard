@@ -29,7 +29,7 @@
             android:name="com.jms.pssoundboard.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.PSSoundboard"
+            android:theme="@style/Theme.PSSoundboard.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
