@@ -3,21 +3,14 @@ package com.jms.pssoundboard.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,8 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,22 +34,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.ui.components.BlobChip
-import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
 import com.jms.pssoundboard.ui.components.IconBlobButton
+import com.jms.pssoundboard.ui.components.ItemMenu
+import com.jms.pssoundboard.ui.components.MenuEntry
+import com.jms.pssoundboard.ui.components.MenuTone
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.PlayfulHeader
+import com.jms.pssoundboard.ui.components.SelectionBar
 import com.jms.pssoundboard.ui.components.SoftButton
+import com.jms.pssoundboard.ui.components.SoundRow
 import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
@@ -104,7 +96,6 @@ fun CloudLibraryScreen(
     var selectedPreset by remember { mutableStateOf<String?>("Trending") }
     var customUrlDialogOpen by remember { mutableStateOf(false) }
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
-    var addMenuExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     // Debounce search query so user typing queries the online API
@@ -160,8 +151,9 @@ fun CloudLibraryScreen(
         }
     }
 
+    fun selectedItems() = displayedItems.filter { it.id in selectedItemIds }
     fun copySelected() {
-        val selectedList = displayedItems.filter { it.id in selectedItemIds }
+        val selectedList = selectedItems()
         val text = selectedList.joinToString("\n") {
             "${it.title}: ${it.url ?: it.localUri ?: "Instant Synth"}"
         }
@@ -192,34 +184,18 @@ fun CloudLibraryScreen(
                         size = 48.dp,
                         iconSize = 20.dp
                     )
-                    Box {
-                        IconBlobButton(
-                            icon = PlayfulIcons.Plus,
-                            contentDescription = "Add your own sound",
-                            onClick = { addMenuExpanded = true },
-                            colour = AddBlobColour,
-                            size = 52.dp,
-                            iconSize = 22.dp
+                    ItemMenu(
+                        contentDescription = "Add your own sound",
+                        icon = PlayfulIcons.Plus,
+                        colour = AddBlobColour,
+                        size = 52.dp,
+                        iconSize = 22.dp,
+                        entries = listOf(
+                            MenuEntry("Import a file", PlayfulIcons.Folder) { filePicker.launch("audio/*") },
+                            MenuEntry("Add from a web link", PlayfulIcons.Link) { customUrlDialogOpen = true },
+                            MenuEntry("Record with the mic", PlayfulIcons.Mic) { onOpenClipCreator() },
                         )
-                        DropdownMenu(
-                            expanded = addMenuExpanded,
-                            onDismissRequest = { addMenuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        ) {
-                            PlayfulMenuItem("Import a file", PlayfulIcons.Folder) {
-                                addMenuExpanded = false
-                                filePicker.launch("audio/*")
-                            }
-                            PlayfulMenuItem("Add from a web link", PlayfulIcons.Link) {
-                                addMenuExpanded = false
-                                customUrlDialogOpen = true
-                            }
-                            PlayfulMenuItem("Record with the mic", PlayfulIcons.Mic) {
-                                addMenuExpanded = false
-                                onOpenClipCreator()
-                            }
-                        }
-                    }
+                    )
                 }
             }
         )
@@ -315,76 +291,26 @@ fun CloudLibraryScreen(
             }
         }
 
-        // Batch selection bar
-        AnimatedVisibility(
-            visible = selectedItemIds.isNotEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut()
+        SelectionBar(
+            count = selectedItemIds.size,
+            menuDescription = "More options for selected sounds",
+            menuEntries = listOf(
+                MenuEntry("Copy all links", PlayfulIcons.Copy) { copySelected() },
+                MenuEntry("Save selected to Downloads", PlayfulIcons.Download) {
+                    onSaveMultipleToDownloads(selectedItems())
+                },
+                MenuEntry("Share selected to chat", PlayfulIcons.Share) {
+                    onShareMultipleItems(selectedItems())
+                },
+                MenuEntry("Spew the first one", PlayfulIcons.Speaker, MenuTone.Spew) {
+                    selectedItems().firstOrNull()?.let { onSpewDirectly(it) }
+                },
+                MenuEntry("Deselect all", PlayfulIcons.Close) { selectedItemIds = emptySet() },
+            ),
+            onClear = { selectedItemIds = emptySet() }
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CapsuleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CapsuleShape)
-                    .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "${selectedItemIds.size} selected",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                SoftButton(text = "Copy", onClick = { copySelected() }, light = false)
-                SoftButton(
-                    text = "Save all",
-                    onClick = {
-                        onSaveMultipleToDownloads(displayedItems.filter { it.id in selectedItemIds })
-                    }
-                )
-
-                var batchMenuExpanded by remember { mutableStateOf(false) }
-                Box {
-                    IconBlobButton(
-                        icon = PlayfulIcons.More,
-                        contentDescription = "More options for selected sounds",
-                        onClick = { batchMenuExpanded = true }
-                    )
-                    DropdownMenu(
-                        expanded = batchMenuExpanded,
-                        onDismissRequest = { batchMenuExpanded = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    ) {
-                        PlayfulMenuItem("Copy all links", PlayfulIcons.Copy) {
-                            batchMenuExpanded = false
-                            copySelected()
-                        }
-                        PlayfulMenuItem("Save selected to Downloads", PlayfulIcons.Download) {
-                            batchMenuExpanded = false
-                            onSaveMultipleToDownloads(displayedItems.filter { it.id in selectedItemIds })
-                        }
-                        PlayfulMenuItem("Share selected to chat", PlayfulIcons.Share) {
-                            batchMenuExpanded = false
-                            onShareMultipleItems(displayedItems.filter { it.id in selectedItemIds })
-                        }
-                        PlayfulMenuItem("Spew the first one", PlayfulIcons.Speaker, highlight = true) {
-                            batchMenuExpanded = false
-                            displayedItems.firstOrNull { it.id in selectedItemIds }?.let { onSpewDirectly(it) }
-                        }
-                        PlayfulMenuItem("Deselect all", PlayfulIcons.Close) {
-                            batchMenuExpanded = false
-                            selectedItemIds = emptySet()
-                        }
-                    }
-                }
-
-                IconBlobButton(
-                    icon = PlayfulIcons.Close,
-                    contentDescription = "Clear selection",
-                    onClick = { selectedItemIds = emptySet() }
-                )
-            }
+            SoftButton(text = "Copy", onClick = { copySelected() }, light = false)
+            SoftButton(text = "Save all", onClick = { onSaveMultipleToDownloads(selectedItems()) })
         }
 
         // Results and catalogue list with infinite scroll (10 at a time)
@@ -412,9 +338,36 @@ fun CloudLibraryScreen(
                     selectedItemIds = if (isSelected) selectedItemIds - item.id else selectedItemIds + item.id
                 }
 
-                CapsuleRow(
+                val source = when {
+                    item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
+                    item.source.contains("built-in", ignoreCase = true) -> "built-in"
+                    item.url != null -> "online"
+                    item.builtinId != null && !item.category.contains("built-in", ignoreCase = true) -> "built-in"
+                    else -> null
+                }
+
+                SoundRow(
+                    key = item.id,
+                    title = item.title,
+                    subtitle = listOfNotNull(item.category, source).joinToString(" · "),
                     selected = isSelected,
-                    modifier = if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CapsuleShape) else Modifier
+                    onSpew = { onSpewDirectly(item) },
+                    spewDescription = "Spew ${item.title} into voice chat",
+                    onShare = { onShareItem(item) },
+                    shareDescription = "Share ${item.title} to chat (WhatsApp, Signal)",
+                    menuEntries = listOf(
+                        MenuEntry("Share sound file", PlayfulIcons.Share) { onShareItem(item) },
+                        MenuEntry("Spew into chat", PlayfulIcons.Speaker, MenuTone.Spew) { onSpewDirectly(item) },
+                        MenuEntry("Equip to a pad", PlayfulIcons.Plus) { onEquipItem(item) },
+                        MenuEntry("Copy sound link", PlayfulIcons.Copy) {
+                            onCopyToClipboard(item.title, item.url ?: item.localUri ?: item.title)
+                        },
+                        MenuEntry("Save to Downloads", PlayfulIcons.Download) { onSaveToDownloads(item) },
+                        MenuEntry(
+                            if (isSelected) "Deselect" else "Select",
+                            if (isSelected) PlayfulIcons.Close else PlayfulIcons.Check
+                        ) { toggleSelection() },
+                    )
                 ) {
                     // While choosing several, each row shows a tick to add or remove it
                     if (selectedItemIds.isNotEmpty()) {
@@ -437,108 +390,6 @@ fun CloudLibraryScreen(
                         iconSize = 20.dp,
                         modifier = Modifier.spewPulse(isPreviewing, blobColour, blobShape)
                     )
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        var isScrollingTitle by remember(item.id) { mutableStateOf(false) }
-
-                        Text(
-                            text = item.title,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    isScrollingTitle = !isScrollingTitle
-                                }
-                                .then(
-                                    if (isScrollingTitle) {
-                                        Modifier.basicMarquee(
-                                            iterations = Int.MAX_VALUE,
-                                            initialDelayMillis = 150,
-                                            repeatDelayMillis = 1200,
-                                            velocity = 45.dp
-                                        )
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                        )
-                        val source = when {
-                            item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
-                            item.source.contains("built-in", ignoreCase = true) -> "built-in"
-                            item.url != null -> "online"
-                            item.builtinId != null && !item.category.contains("built-in", ignoreCase = true) -> "built-in"
-                            else -> null
-                        }
-                        Text(
-                            text = listOfNotNull(item.category, source).joinToString(" · "),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    SpewButton(
-                        onClick = { onSpewDirectly(item) },
-                        contentDescription = "Spew ${item.title} into voice chat"
-                    )
-
-                    IconBlobButton(
-                        icon = PlayfulIcons.Share,
-                        contentDescription = "Share ${item.title} to chat (WhatsApp, Signal)",
-                        onClick = { onShareItem(item) },
-                        size = 40.dp,
-                        iconSize = 18.dp
-                    )
-
-                    var itemMenuExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        IconBlobButton(
-                            icon = PlayfulIcons.More,
-                            contentDescription = "More options for ${item.title}",
-                            onClick = { itemMenuExpanded = true }
-                        )
-                        DropdownMenu(
-                            expanded = itemMenuExpanded,
-                            onDismissRequest = { itemMenuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        ) {
-                            PlayfulMenuItem("Share sound file", PlayfulIcons.Share) {
-                                itemMenuExpanded = false
-                                onShareItem(item)
-                            }
-                            PlayfulMenuItem("Spew into chat", PlayfulIcons.Speaker, highlight = true) {
-                                itemMenuExpanded = false
-                                onSpewDirectly(item)
-                            }
-                            PlayfulMenuItem("Equip to a pad", PlayfulIcons.Plus) {
-                                itemMenuExpanded = false
-                                onEquipItem(item)
-                            }
-                            PlayfulMenuItem("Copy sound link", PlayfulIcons.Copy) {
-                                itemMenuExpanded = false
-                                val link = item.url ?: item.localUri ?: item.title
-                                onCopyToClipboard(item.title, link)
-                            }
-                            PlayfulMenuItem("Save to Downloads", PlayfulIcons.Download) {
-                                itemMenuExpanded = false
-                                onSaveToDownloads(item)
-                            }
-                            PlayfulMenuItem(
-                                if (isSelected) "Deselect" else "Select",
-                                if (isSelected) PlayfulIcons.Close else PlayfulIcons.Check
-                            ) {
-                                itemMenuExpanded = false
-                                toggleSelection()
-                            }
-                        }
-                    }
                 }
             }
 
@@ -682,31 +533,6 @@ fun CloudLibraryScreen(
             }
         }
     }
-}
-
-/** A dropdown entry with a playful icon; [highlight] marks the Spew action in yellow. */
-@Composable
-private fun PlayfulMenuItem(
-    text: String,
-    icon: ImageVector,
-    highlight: Boolean = false,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = text,
-                color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium
-            )
-        },
-        leadingIcon = {
-            Icon(icon, contentDescription = null, tint = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-        },
-        onClick = onClick,
-        modifier = Modifier.height(48.dp)
-    )
 }
 
 /** Shown above the list when the online search failed, or a search found nothing. */
