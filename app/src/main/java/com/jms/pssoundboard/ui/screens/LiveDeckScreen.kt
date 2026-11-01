@@ -52,6 +52,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +63,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -129,6 +129,8 @@ fun LiveDeckScreen(
     val activeBoard = deckState.activeBoard ?: return
     var managingBoard by remember { mutableStateOf<Board?>(null) }
     var isAddingBoard by remember { mutableStateOf(false) }
+    // While on, tapping a pad opens its editor instead of playing it, so holding a pad only ever plays.
+    var editingPads by rememberSaveable { mutableStateOf(false) }
 
     // The first favourite on this deck that has a sound becomes the double-size hero pad.
     val heroSlot = activeBoard.pads.firstOrNull { pad ->
@@ -146,21 +148,30 @@ fun LiveDeckScreen(
 
     @Composable
     fun DeckTitle(titleSize: TextUnit) {
-        Column(
-            modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(
-                text = activeBoard.name,
-                color = InkLight,
-                fontFamily = BricolageCondensed,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = titleSize,
-                lineHeight = titleSize * 0.95f,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp, top = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("Spew Deck", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = activeBoard.name,
+                    color = InkLight,
+                    fontFamily = BricolageCondensed,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = titleSize,
+                    lineHeight = titleSize * 0.95f,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            EditPadsToggle(editing = editingPads, onToggle = { editingPads = !editingPads })
         }
     }
 
@@ -281,6 +292,7 @@ fun LiveDeckScreen(
                     heroSlot = heroSlot,
                     playingPads = playingPads,
                     landscape = true,
+                    editingPads = editingPads,
                     onPressPad = onPressPad,
                     onReleasePad = onReleasePad,
                     onEditPad = onEditPad,
@@ -304,6 +316,7 @@ fun LiveDeckScreen(
                     heroSlot = heroSlot,
                     playingPads = playingPads,
                     landscape = false,
+                    editingPads = editingPads,
                     onPressPad = onPressPad,
                     onReleasePad = onReleasePad,
                     onEditPad = onEditPad,
@@ -519,6 +532,7 @@ private fun PadGrid(
     heroSlot: Int?,
     playingPads: Set<String>,
     landscape: Boolean,
+    editingPads: Boolean,
     onPressPad: (PadRef, Pad) -> Unit,
     onReleasePad: (PadRef, Pad) -> Unit,
     onEditPad: (boardId: String, Pad) -> Unit,
@@ -537,9 +551,10 @@ private fun PadGrid(
                 isFavorite = padRef in deckState.favorites,
                 isPlaying = padRef.key in playingPads,
                 isHero = hero,
+                editing = editingPads,
                 onPress = { onPressPad(padRef, pad) },
                 onRelease = { onReleasePad(padRef, pad) },
-                onLongClick = { onEditPad(board.id, pad) },
+                onEdit = { onEditPad(board.id, pad) },
                 modifier = cellModifier
             )
         }
@@ -587,6 +602,32 @@ private fun PadGrid(
     }
 }
 
+/** Switches the deck between playing pads and editing them. 48 dp tall so it's an easy target. */
+@Composable
+private fun EditPadsToggle(editing: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .height(48.dp)
+            .clip(ChipBlob)
+            .background(if (editing) SpewYellow else Surface2)
+            .clickable(role = Role.Button, onClickLabel = if (editing) "Stop editing pads" else "Edit pads") { onToggle() }
+            .semantics { contentDescription = if (editing) "Editing pads, done" else "Edit pads" }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        val ink = if (editing) Ground else InkLight
+        Icon(if (editing) PlayfulIcons.Check else PlayfulIcons.Edit, contentDescription = null, tint = ink, modifier = Modifier.size(16.dp))
+        Text(
+            text = if (editing) "Done" else "Edit pads",
+            color = ink,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            maxLines = 1
+        )
+    }
+}
+
 private val PlaybackMode.shortLabel: String
     get() = when (this) {
         PlaybackMode.ONE_SHOT -> "Tap"
@@ -601,9 +642,10 @@ private fun TactilePad(
     isFavorite: Boolean,
     isPlaying: Boolean,
     isHero: Boolean,
+    editing: Boolean,
     onPress: () -> Unit,
     onRelease: () -> Unit,
-    onLongClick: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isPressed by remember(padRef.key) { mutableStateOf(false) }
@@ -616,7 +658,7 @@ private fun TactilePad(
     // Capture latest lambdas so pointerInput never executes stale callbacks across board switches
     val currentOnPress by rememberUpdatedState(onPress)
     val currentOnRelease by rememberUpdatedState(onRelease)
-    val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val currentOnEdit by rememberUpdatedState(onEdit)
 
     val hasSound = pad.filePath != null
     val shape = PadShape.of(pad.shape, pad.slot).shape
@@ -629,6 +671,11 @@ private fun TactilePad(
         if (isFavorite) append(", favourite")
         if (isPlaying) append(", spewing")
     }
+    val modeLabel = when {
+        editing -> "Edit"
+        isPlaying -> "Spewing"
+        else -> pad.mode.shortLabel
+    }
 
     Box(
         modifier = modifier
@@ -639,29 +686,41 @@ private fun TactilePad(
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = description
-                onClick(label = "Spew") {
-                    currentOnPress()
-                    currentOnRelease()
-                    true
-                }
-                onLongClick(label = "Edit pad") {
-                    currentOnLongClick()
-                    true
+                if (editing) {
+                    onClick(label = "Edit pad") {
+                        currentOnEdit()
+                        true
+                    }
+                } else {
+                    onClick(label = "Spew") {
+                        currentOnPress()
+                        currentOnRelease()
+                        true
+                    }
                 }
             }
-            .pointerInput(padRef.key) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        currentOnPress()
-                        tryAwaitRelease()
-                        isPressed = false
-                        currentOnRelease()
-                    },
-                    onLongPress = {
-                        currentOnLongClick()
-                    }
-                )
+            // No long-press here: it would clash with Hold mode, which loops for as long as the pad is held.
+            .pointerInput(padRef.key, editing) {
+                if (editing) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = { currentOnEdit() }
+                    )
+                } else {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            currentOnPress()
+                            tryAwaitRelease()
+                            isPressed = false
+                            currentOnRelease()
+                        }
+                    )
+                }
             }
             .padding(if (isHero) PaddingValues(horizontal = 18.dp, vertical = 16.dp) else PaddingValues(horizontal = 8.dp, vertical = 6.dp)),
         contentAlignment = if (isHero) Alignment.TopStart else Alignment.Center
@@ -696,7 +755,7 @@ private fun TactilePad(
                     maxLines = 3,
                     minFontSize = 20.sp
                 )
-                Text(pad.mode.shortLabel, color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(modeLabel, color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -713,9 +772,9 @@ private fun TactilePad(
                     maxLines = 3,
                     minFontSize = 10.sp
                 )
-                if (hasSound) {
+                if (hasSound || editing) {
                     Text(
-                        text = if (isPlaying) "Spewing" else pad.mode.shortLabel,
+                        text = modeLabel,
                         color = ink,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
