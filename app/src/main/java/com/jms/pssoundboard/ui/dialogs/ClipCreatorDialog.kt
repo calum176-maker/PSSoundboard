@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,19 +64,12 @@ import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.WavUtils
 import com.jms.pssoundboard.data.model.DeckState
 import com.jms.pssoundboard.data.model.PadRef
-import com.jms.pssoundboard.ui.theme.PanicRed
-import com.jms.pssoundboard.ui.theme.ReadyGreen
-import com.jms.pssoundboard.ui.theme.SlateBackground
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.SlateSurface
-import com.jms.pssoundboard.ui.theme.SlateText
-import com.jms.pssoundboard.ui.theme.SlateTextMuted
-import com.jms.pssoundboard.ui.theme.Teal
-import com.jms.pssoundboard.ui.theme.TealBright
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
+import com.jms.pssoundboard.ui.theme.TrimHighlight
+import com.jms.pssoundboard.ui.theme.spew
 
 @Composable
 fun ClipCreatorDialog(
@@ -172,8 +165,8 @@ fun ClipCreatorDialog(
                 .fillMaxWidth(0.94f)
                 .padding(vertical = 16.dp),
             shape = RoundedCornerShape(20.dp),
-            color = SlateBackground,
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, Teal.copy(alpha = 0.6f))
+            color = MaterialTheme.colorScheme.background,
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.spew.accent.copy(alpha = 0.6f))
         ) {
             Column(
                 modifier = Modifier
@@ -190,14 +183,14 @@ fun ClipCreatorDialog(
                     Column {
                         Text(
                             text = "CLIP CREATOR & RECORDER",
-                            color = Teal,
+                            color = MaterialTheme.spew.accent,
                             fontWeight = FontWeight.Black,
                             fontSize = 17.sp,
                             letterSpacing = 0.8.sp
                         )
                         Text(
                             text = "Record phone mic or trim any audio file (max 10s)",
-                            color = SlateTextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
                         )
                     }
@@ -206,11 +199,11 @@ fun ClipCreatorDialog(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(SlateSurface)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                             .clickable { onDismiss() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✕", color = SlateTextMuted, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
 
@@ -250,7 +243,7 @@ fun ClipCreatorDialog(
                                     micPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = PanicRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -262,7 +255,7 @@ fun ClipCreatorDialog(
                                 stopRecordFlag?.set(true)
                                 isRecording = false
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ReadyGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.spew.ready),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -273,8 +266,8 @@ fun ClipCreatorDialog(
                     OutlinedButton(
                         onClick = { filePicker.launch("audio/*") },
                         enabled = !isRecording,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TealBright),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Teal),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -288,7 +281,7 @@ fun ClipCreatorDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(SlateSurface)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
@@ -298,13 +291,13 @@ fun ClipCreatorDialog(
                         ) {
                             Text(
                                 text = "RECORDING (Phone Built-in Mic)",
-                                color = PanicRed,
+                                color = MaterialTheme.colorScheme.error,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
                             )
                             Text(
                                 text = String.format("%.1f s / 10.0 s", recordElapsedMs / 1000f),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
                             )
@@ -316,8 +309,8 @@ fun ClipCreatorDialog(
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = PanicRed,
-                            trackColor = SlateOutline
+                            color = MaterialTheme.colorScheme.error,
+                            trackColor = MaterialTheme.colorScheme.outline
                         )
 
                         Row(
@@ -325,15 +318,15 @@ fun ClipCreatorDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
-                            Text("Mic Level:", color = SlateTextMuted, fontSize = 10.sp)
+                            Text("Mic Level:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             LinearProgressIndicator(
                                 progress = { currentMicLevel.coerceIn(0f, 1f) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(8.dp)
                                     .clip(RoundedCornerShape(4.dp)),
-                                color = ReadyGreen,
-                                trackColor = SlateOutline
+                                color = MaterialTheme.spew.ready,
+                                trackColor = MaterialTheme.colorScheme.outline
                             )
                         }
                     }
@@ -345,10 +338,10 @@ fun ClipCreatorDialog(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularProgressIndicator(color = Teal, modifier = Modifier.size(20.dp))
+                        CircularProgressIndicator(color = MaterialTheme.spew.accent, modifier = Modifier.size(20.dp))
                         Text(
                             text = " Decoding audio track to mono PCM…",
-                            color = SlateTextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     }
@@ -361,7 +354,7 @@ fun ClipCreatorDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(SlateSurface)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -371,7 +364,7 @@ fun ClipCreatorDialog(
                         ) {
                             Text(
                                 text = "WAVEFORM & TRIM",
-                                color = SlateTextMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -381,7 +374,7 @@ fun ClipCreatorDialog(
                                     trimRange.start, trimRange.endInclusive,
                                     max(0f, trimRange.endInclusive - trimRange.start)
                                 ),
-                                color = TealBright,
+                                color = MaterialTheme.colorScheme.secondary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -397,7 +390,7 @@ fun ClipCreatorDialog(
                                 .fillMaxWidth()
                                 .height(68.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(SlateBackground)
+                                .background(MaterialTheme.colorScheme.background)
                         )
 
                         // Dual-handle Range Slider for trimming
@@ -406,9 +399,9 @@ fun ClipCreatorDialog(
                             onValueChange = { trimRange = it },
                             valueRange = 0f..totalDurationSec,
                             colors = SliderDefaults.colors(
-                                thumbColor = TealBright,
-                                activeTrackColor = Teal,
-                                inactiveTrackColor = SlateOutline
+                                thumbColor = MaterialTheme.colorScheme.secondary,
+                                activeTrackColor = MaterialTheme.spew.accent,
+                                inactiveTrackColor = MaterialTheme.colorScheme.outline
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -419,7 +412,7 @@ fun ClipCreatorDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(SlateSurface)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -427,13 +420,13 @@ fun ClipCreatorDialog(
                         Column {
                             Text(
                                 text = "Normalize Peak (-1 dBFS)",
-                                color = SlateText,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
                             Text(
                                 text = "Boosts loudness cleanly for the loopback cable",
-                                color = SlateTextMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 10.sp
                             )
                         }
@@ -441,8 +434,8 @@ fun ClipCreatorDialog(
                             checked = normalizeAudio,
                             onCheckedChange = { normalizeAudio = it },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Teal
+                                checkedThumbColor = MaterialTheme.spew.onAccent,
+                                checkedTrackColor = MaterialTheme.spew.accent
                             )
                         )
                     }
@@ -453,12 +446,12 @@ fun ClipCreatorDialog(
                         label = { Text("Clip Title") },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = SlateText,
-                            unfocusedTextColor = SlateText,
-                            focusedBorderColor = Teal,
-                            unfocusedBorderColor = SlateOutline,
-                            focusedLabelColor = Teal,
-                            unfocusedLabelColor = SlateTextMuted
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedBorderColor = MaterialTheme.spew.accent,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedLabelColor = MaterialTheme.spew.accent,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -467,7 +460,7 @@ fun ClipCreatorDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Target Deck:",
-                            color = SlateTextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -481,14 +474,14 @@ fun ClipCreatorDialog(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isSelected) Teal else SlateSurface)
-                                        .border(1.dp, if (isSelected) Color.White else SlateOutline, RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) MaterialTheme.spew.accent else MaterialTheme.colorScheme.surfaceContainer)
+                                        .border(1.dp, if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
                                         .clickable { targetBoardId = board.id }
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = board.name,
-                                        color = if (isSelected) Color.White else SlateText,
+                                        color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurface,
                                         fontSize = 11.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
@@ -503,7 +496,7 @@ fun ClipCreatorDialog(
                         ) {
                             Text(
                                 text = "Pad Slot (1 - 12):",
-                                color = SlateTextMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -514,14 +507,14 @@ fun ClipCreatorDialog(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(if (isSelected) Teal else SlateSurface)
-                                            .border(1.dp, if (isSelected) Color.White else SlateOutline, RoundedCornerShape(4.dp))
+                                            .background(if (isSelected) MaterialTheme.spew.accent else MaterialTheme.colorScheme.surfaceContainer)
+                                            .border(1.dp, if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
                                             .clickable { targetSlot = slot },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = "${slot + 1}",
-                                            color = if (isSelected) Color.White else SlateTextMuted,
+                                            color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -547,8 +540,8 @@ fun ClipCreatorDialog(
                                     normalizeAudio
                                 )
                             },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TealBright),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Teal),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -567,7 +560,7 @@ fun ClipCreatorDialog(
                                     PadRef(targetBoardId, targetSlot)
                                 )
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.spew.accent),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1.4f)
                         ) {
@@ -595,6 +588,11 @@ private fun WaveformCanvas(
     modifier: Modifier = Modifier,
 ) {
     val peaks = remember(samples) { WavUtils.waveformPeaks(samples, buckets = 70) }
+    // The draw block isn't composable, so read the theme colours here.
+    val baselineColour = MaterialTheme.colorScheme.outline
+    val selectedBarColour = MaterialTheme.colorScheme.secondary
+    val barColour = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    val markerColour = MaterialTheme.colorScheme.onSurface
 
     Canvas(modifier = modifier) {
         val width = size.width
@@ -606,14 +604,14 @@ private fun WaveformCanvas(
 
         // Highlight selected trim region
         drawRect(
-            color = Color(0xFF004D4D).copy(alpha = 0.6f),
+            color = TrimHighlight.copy(alpha = 0.6f),
             topLeft = Offset(startX, 0f),
             size = Size(max(1f, endX - startX), height)
         )
 
         // Draw center baseline
         drawLine(
-            color = SlateOutline,
+            color = baselineColour,
             start = Offset(0f, midY),
             end = Offset(width, midY),
             strokeWidth = 1f
@@ -626,7 +624,7 @@ private fun WaveformCanvas(
                 val x = i * barWidth + barWidth / 2f
                 val h = (peaks[i] * (height / 2f - 4f)).coerceAtLeast(2f)
                 val inSelected = x in startX..endX
-                val barColor = if (inSelected) TealBright else SlateTextMuted.copy(alpha = 0.4f)
+                val barColor = if (inSelected) selectedBarColour else barColour
 
                 drawLine(
                     color = barColor,
@@ -639,13 +637,13 @@ private fun WaveformCanvas(
 
         // Draw start / end trim marker lines
         drawLine(
-            color = Color.White,
+            color = markerColour,
             start = Offset(startX, 0f),
             end = Offset(startX, height),
             strokeWidth = 2f
         )
         drawLine(
-            color = Color.White,
+            color = markerColour,
             start = Offset(endX, 0f),
             end = Offset(endX, height),
             strokeWidth = 2f

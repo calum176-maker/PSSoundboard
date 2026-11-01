@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,18 +41,11 @@ import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.ui.theme.Bricolage
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.FieldBackground
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.InkOnBlob
 import com.jms.pssoundboard.ui.theme.PadPalette
 import com.jms.pssoundboard.ui.theme.PadShape
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.Surface1
-import com.jms.pssoundboard.ui.theme.Surface2
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
+import com.jms.pssoundboard.ui.theme.spew
 import com.jms.pssoundboard.ui.theme.toComposeColor
 import kotlin.math.abs
 
@@ -80,10 +74,10 @@ fun PlayfulHeader(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(eyebrow, color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(eyebrow, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(
                 text = title,
-                color = InkLight,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontFamily = BricolageCondensed,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 38.sp,
@@ -110,13 +104,13 @@ fun BlobChip(
 ) {
     val background = when {
         colour != null -> Modifier.gummy(colour, ChipBlob)
-        selected -> Modifier.clip(ChipBlob).background(InkLight)
-        else -> Modifier.clip(ChipBlob).background(Surface2)
+        selected -> Modifier.clip(ChipBlob).background(MaterialTheme.colorScheme.onSurface)
+        else -> Modifier.clip(ChipBlob).background(MaterialTheme.colorScheme.surfaceContainerHigh)
     }
     val ink = when {
         colour != null -> inkOn(colour)
-        selected -> Ground
-        else -> InkLight
+        selected -> MaterialTheme.colorScheme.background
+        else -> MaterialTheme.colorScheme.onSurface
     }
     Box(
         modifier = modifier
@@ -149,13 +143,13 @@ fun SpewButton(
         modifier = modifier
             .height(44.dp)
             .defaultMinSize(minWidth = 64.dp)
-            .gummy(SpewYellow, RoundedCornerShape(topStart = 24.dp, topEnd = 18.dp, bottomEnd = 22.dp, bottomStart = 16.dp))
+            .gummy(MaterialTheme.colorScheme.primary, RoundedCornerShape(topStart = 24.dp, topEnd = 18.dp, bottomEnd = 22.dp, bottomStart = 16.dp))
             .clickable(role = Role.Button, onClickLabel = contentDescription, onClick = onClick)
             .semantics { this.contentDescription = contentDescription }
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = InkOnBlob, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+        Text(label, color = MaterialTheme.spew.onBlob, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
     }
 }
 
@@ -188,9 +182,9 @@ fun IconBlobButton(
             imageVector = icon,
             contentDescription = null,
             tint = when {
-                !enabled -> InkMuted.copy(alpha = 0.5f)
+                !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 colour != null -> inkOn(colour)
-                else -> InkMuted
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
             },
             modifier = Modifier.size(iconSize)
         )
@@ -208,7 +202,7 @@ fun CapsuleRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(CapsuleShape)
-            .background(if (selected) Surface2 else Surface1)
+            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainer)
             .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -231,24 +225,24 @@ fun PlayfulField(
             .fillMaxWidth()
             .height(52.dp)
             .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 22.dp, bottomEnd = 24.dp, bottomStart = 20.dp))
-            .background(FieldBackground)
+            .background(MaterialTheme.spew.field)
             .padding(start = 18.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (leadingIcon != null) {
-            Icon(leadingIcon, contentDescription = null, tint = InkMuted, modifier = Modifier.size(18.dp))
+            Icon(leadingIcon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             if (value.isEmpty()) {
-                Text(placeholder, color = InkMuted, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = TextStyle(color = InkLight, fontFamily = Bricolage, fontSize = 17.sp, fontWeight = FontWeight.Medium),
-                cursorBrush = SolidColor(SpewYellow),
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontFamily = Bricolage, fontSize = 17.sp, fontWeight = FontWeight.Medium),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = placeholder }
@@ -271,15 +265,15 @@ fun StatusCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(CapsuleShape)
-            .background(Surface2)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         art()
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, color = InkLight, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(body, color = InkMuted, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
         }
         action?.invoke()
     }
@@ -297,12 +291,12 @@ fun SoftButton(
         modifier = modifier
             .height(44.dp)
             .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 18.dp, bottomEnd = 20.dp, bottomStart = 16.dp))
-            .background(if (light) InkLight else Surface2)
+            .background(if (light) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (light) Ground else InkLight, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        Text(text, color = if (light) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
     }
 }
 

@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -70,60 +71,31 @@ import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.theme.BlobShape
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.CableAmber
-import com.jms.pssoundboard.ui.theme.FieldBackground
-import com.jms.pssoundboard.ui.theme.Ground
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.InkOnBlob
+import com.jms.pssoundboard.ui.theme.DriveColour
+import com.jms.pssoundboard.ui.theme.EchoColour
+import com.jms.pssoundboard.ui.theme.GainColour
+import com.jms.pssoundboard.ui.theme.GateColour
 import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PitchColour
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.ReadyGreen
-import com.jms.pssoundboard.ui.theme.SpewYellow
-import com.jms.pssoundboard.ui.theme.StopRed
-import com.jms.pssoundboard.ui.theme.Surface1
-import com.jms.pssoundboard.ui.theme.Surface2
+import com.jms.pssoundboard.ui.theme.PresetColours
+import com.jms.pssoundboard.ui.theme.RecordHalo
+import com.jms.pssoundboard.ui.theme.RobotColour
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.rememberReducedMotion
+import com.jms.pssoundboard.ui.theme.spew
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.PI
 import kotlin.math.sin
 
-/** Each effect gets its own bright gummy colour (the stored preset colours are too dark for blobs). */
-private val PresetColours = mapOf(
-    "natural" to Color(0xFFE6DCF2),
-    "chipmunk" to Color(0xFFFFA400),
-    "deep" to Color(0xFFA46BFF),
-    "demon" to Color(0xFFFF6B1F),
-    "robot" to Color(0xFF4A86FF),
-    "radio" to Color(0xFF3EE06A),
-    "alien" to Color(0xFFFF45D0),
-    "cave" to Color(0xFF16D4F5),
-    "arnold" to Color(0xFF00D9C0),
-    "vader" to Color(0xFFFF3D6E),
-    "morgan" to Color(0xFFFFE020),
-    "batman" to Color(0xFFFF7A6E),
-    "ramsay" to Color(0xFFAEF51A),
-    "yoda" to Color(0xFF3EE06A),
-)
-
 private fun presetColour(preset: VoicePreset): Color = PresetColours[preset.id] ?: blobColourFor(preset.id)
 
 private fun presetShape(preset: VoicePreset): Shape =
     if (preset == VoicePreset.NATURAL) PadShape.ROUND.shape
     else PadShape.entries[preset.ordinal % PadShape.entries.size].shape
-
-private val PitchColour = Color(0xFFFF3D6E)
-private val RobotColour = Color(0xFF4A86FF)
-private val EchoColour = Color(0xFF3EE06A)
-private val DriveColour = Color(0xFFFF6B1F)
-private val GainColour = Color(0xFFFFE020)
-private val GateColour = Color(0xFF16D4F5)
-private val DisabledInk = Color(0xFF8F82A3)
-private val RecordHalo = Color(0xFF2A1620)
 
 private const val MAX_RECORD_SECONDS = 10f
 
@@ -184,7 +156,7 @@ fun VoiceChangerScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Ground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -202,7 +174,7 @@ fun VoiceChangerScreen(
                     leadingIcon = PlayfulIcons.Library
                 )
                 if (filteredPresets.isEmpty()) {
-                    Text("No effects match \"$searchQuery\".", color = InkMuted, fontSize = 14.sp)
+                    Text("No effects match \"$searchQuery\".", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                 }
                 filteredPresets.chunked(4).forEach { row ->
                     Row(
@@ -250,7 +222,7 @@ fun VoiceChangerScreen(
 
                 Text(
                     text = String.format(Locale.UK, "%.1f of %.0f seconds", if (isRecording) recordElapsedMs / 1000f else 0f, MAX_RECORD_SECONDS),
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
 
@@ -261,7 +233,7 @@ fun VoiceChangerScreen(
                 if (!isRecording) {
                     Text(
                         text = "Records up to 10 seconds, then adds the effect. It is not live.",
-                        color = InkMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center
                     )
@@ -270,7 +242,7 @@ fun VoiceChangerScreen(
                 if (micDenied && !isRecording) {
                     Text(
                         text = "Microphone access is off. Allow it when asked, or in Settings › Apps › Spewboard › Permissions.",
-                        color = CableAmber,
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center
                     )
@@ -280,7 +252,7 @@ fun VoiceChangerScreen(
                 if (samples != null && !isRecording) {
                     Text(
                         text = String.format(Locale.UK, "Ready: %.1f seconds with the effect", samples.size.toFloat() / ClipRecorder.SAMPLE_RATE),
-                        color = ReadyGreen,
+                        color = MaterialTheme.spew.ready,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
@@ -324,7 +296,7 @@ fun VoiceChangerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CapsuleShape)
-                    .background(Surface1)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 18.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
@@ -333,9 +305,9 @@ fun VoiceChangerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Fine-tune", color = InkLight, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, fontFamily = BricolageCondensed)
+                    Text("Fine-tune", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, fontFamily = BricolageCondensed)
                     if (activePresetId == VoiceFxParams.CUSTOM_ID) {
-                        Text(text = "(Preset: Customized)", color = CableAmber, fontSize = 12.sp)
+                        Text(text = "(Preset: Customized)", color = MaterialTheme.colorScheme.tertiary, fontSize = 12.sp)
                     }
                 }
 
@@ -401,11 +373,11 @@ fun VoiceChangerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(if (showMore) "Less" else "More", color = InkMuted, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(if (showMore) "Less" else "More", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Icon(
                         imageVector = PlayfulIcons.ChevronDown,
                         contentDescription = null,
-                        tint = InkMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp).scale(scaleX = 1f, scaleY = if (showMore) -1f else 1f)
                     )
                 }
@@ -419,8 +391,8 @@ fun VoiceChangerScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Radio filter", color = InkLight, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("Walkie-talkie band-pass", color = InkMuted, fontSize = 12.sp)
+                                Text("Radio filter", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("Walkie-talkie band-pass", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             }
                             Switch(
                                 checked = voiceFxParams.radio,
@@ -428,11 +400,11 @@ fun VoiceChangerScreen(
                                     onParamsChanged(voiceFxParams.copy(radio = it, presetId = VoiceFxParams.CUSTOM_ID), VoiceFxParams.CUSTOM_ID)
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = InkOnBlob,
+                                    checkedThumbColor = MaterialTheme.spew.onBlob,
                                     checkedTrackColor = EchoColour,
-                                    uncheckedThumbColor = InkMuted,
-                                    uncheckedTrackColor = FieldBackground,
-                                    uncheckedBorderColor = Surface2
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    uncheckedTrackColor = MaterialTheme.spew.field,
+                                    uncheckedBorderColor = MaterialTheme.colorScheme.surfaceContainerHigh
                                 )
                             )
                         }
@@ -487,18 +459,18 @@ fun VoiceChangerScreen(
             Column(
                 modifier = Modifier
                     .clip(CapsuleShape)
-                    .background(Surface1)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "Save to the Vault",
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = BricolageCondensed,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 24.sp
                 )
-                Text("Clip name", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Clip name", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 PlayfulField(
                     value = clipTitle,
                     onValueChange = { clipTitle = it },
@@ -590,7 +562,7 @@ private fun RecordBlob(
             .size(width = 170.dp, height = 160.dp)
             .border(10.dp, RecordHalo, shape)
             .padding(10.dp)
-            .gummy(StopRed, shape)
+            .gummy(MaterialTheme.colorScheme.error, shape)
             .clickable(role = Role.Button, onClickLabel = contentDescription, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
@@ -599,12 +571,12 @@ private fun RecordBlob(
             Icon(
                 imageVector = if (isRecording) PlayfulIcons.Stop else PlayfulIcons.Mic,
                 contentDescription = null,
-                tint = InkOnBlob,
+                tint = MaterialTheme.spew.onBlob,
                 modifier = Modifier.size(34.dp)
             )
             Text(
                 text = if (isRecording) "Stop" else "Tap to record",
-                color = InkOnBlob,
+                color = MaterialTheme.spew.onBlob,
                 fontFamily = BricolageCondensed,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 18.sp
@@ -623,7 +595,7 @@ private fun LevelMeter(level: Float) {
                 .width(180.dp)
                 .height(10.dp)
                 .clip(RoundedCornerShape(5.dp))
-                .background(FieldBackground)
+                .background(MaterialTheme.spew.field)
                 .semantics { contentDescription = String.format(Locale.UK, "Microphone level %.0f percent", clamped * 100f) }
         ) {
             Box(
@@ -631,10 +603,10 @@ private fun LevelMeter(level: Float) {
                     .fillMaxHeight()
                     .fillMaxWidth(clamped)
                     .clip(RoundedCornerShape(5.dp))
-                    .background(SpewYellow)
+                    .background(MaterialTheme.colorScheme.primary)
             )
         }
-        Text("Mic level", color = InkMuted, fontSize = 12.sp)
+        Text("Mic level", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
 
@@ -650,12 +622,12 @@ private fun ActionPill(
         modifier = Modifier
             .height(44.dp)
             .clip(shape)
-            .background(if (enabled) Surface2 else FieldBackground)
+            .background(if (enabled) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.spew.field)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = if (enabled) InkLight else DisabledInk, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(text, color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.spew.disabled, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
@@ -676,7 +648,7 @@ private fun ParamSlider(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(label, color = InkLight, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.width(labelWidth))
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.width(labelWidth))
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -688,14 +660,14 @@ private fun ParamSlider(
             colors = SliderDefaults.colors(
                 thumbColor = colour,
                 activeTrackColor = colour,
-                inactiveTrackColor = FieldBackground,
+                inactiveTrackColor = MaterialTheme.spew.field,
                 activeTickColor = Color.Transparent,
                 inactiveTickColor = Color.Transparent
             )
         )
         Text(
             valueText,
-            color = InkLight,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             textAlign = TextAlign.End,

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,9 +25,6 @@ import com.jms.pssoundboard.ui.components.SpewButton
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
-import com.jms.pssoundboard.ui.theme.Surface1
 import com.jms.pssoundboard.ui.theme.gummy
 
 /** The changes in this build: shown once after an update, and from Setup any time. */
@@ -38,7 +36,7 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .padding(8.dp),
             shape = RoundedCornerShape(28.dp),
-            color = Surface1
+            color = MaterialTheme.colorScheme.surfaceContainer
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -47,12 +45,12 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                 Column {
                     Text(
                         text = "What's new",
-                        color = InkLight,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = BricolageCondensed,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 28.sp
                     )
-                    Text("Spewboard v${notes.version}", color = InkMuted, fontSize = 13.sp)
+                    Text("Spewboard v${notes.version}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 }
                 Column(
                     modifier = Modifier
@@ -69,7 +67,7 @@ fun WhatsNewDialog(notes: WhatsNew, onDismiss: () -> Unit) {
                                     .size(width = 14.dp, height = 13.dp)
                                     .gummy(blobColourFor(item), blobShapeFor(item))
                             )
-                            Text(item, color = InkLight, fontSize = 15.sp, lineHeight = 20.sp)
+                            Text(item, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 20.sp)
                         }
                     }
                 }
