@@ -378,6 +378,7 @@ fun MainScreen(
                     )
                     2 -> CloudLibraryScreen(
                         onlineResults = onlineResults,
+                        spewEntries = spewEntries,
                         isSearchingOnline = isSearchingOnline,
                         isLoadingMore = isLoadingMoreOnline,
                         hasMoreResults = hasMoreOnlineResults,

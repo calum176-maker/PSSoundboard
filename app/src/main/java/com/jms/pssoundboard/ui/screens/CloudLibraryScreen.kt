@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,6 +52,7 @@ import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundSource
+import com.jms.pssoundboard.data.model.SpewEntry
 import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
@@ -76,9 +76,97 @@ import kotlinx.coroutines.delay
 private val AddBlobColour = "#A46BFF".toComposeColor()
 private val MicBlobColour = "#FF3D6E".toComposeColor()
 
+enum class DurationFilter(val label: String, val shortLabel: String) {
+    ANY("Any duration", "All lengths"),
+    SHORT("Short (< 3s)", "< 3s"),
+    MEDIUM("Medium (3–10s)", "3–10s"),
+    LONG("Long (> 10s)", "> 10s")
+}
+
+enum class SortOrder(val label: String) {
+    DEFAULT("Relevance / Trending"),
+    SHORTEST_FIRST("Shortest first"),
+    LONGEST_FIRST("Longest first"),
+    ALPHABETICAL("Alphabetical (A–Z)")
+}
+
+data class VaultRecommendation(
+    val title: String,
+    val query: String,
+    val reason: String
+)
+
+private val EXPLORE_CATEGORIES = listOf(
+    "Memes",
+    "Gaming",
+    "Movies & TV",
+    "Anime",
+    "Sound FX",
+    "Reactions",
+    "Music"
+)
+
+private fun extractVaultRecommendations(entries: List<SpewEntry>): List<VaultRecommendation> {
+    if (entries.isEmpty()) return emptyList()
+
+    val prioritized = entries.sortedWith(
+        compareByDescending<SpewEntry> { it.isPinned }
+            .thenByDescending { it.spewCount }
+            .thenByDescending { it.lastSpewedEpochMs }
+    )
+
+    val list = mutableListOf<VaultRecommendation>()
+
+    // Top spewed / pinned sounds
+    prioritized.take(5).forEach { entry ->
+        val cleanName = entry.title
+            .replace(Regex("(?i)\\.(mp3|wav|ogg|m4a)$"), "")
+            .replace(Regex("[-_]"), " ")
+            .trim()
+        if (cleanName.isNotBlank() && list.none { it.query.equals(cleanName, ignoreCase = true) }) {
+            list.add(
+                VaultRecommendation(
+                    title = cleanName,
+                    query = cleanName,
+                    reason = if (entry.isPinned) "Pinned in vault" else "Spewed ${entry.spewCount}x"
+                )
+            )
+        }
+    }
+
+    // Top vault categories
+    val topCategories = entries.groupBy { it.category }
+        .filterKeys {
+            it.isNotBlank() &&
+            !it.equals("custom", ignoreCase = true) &&
+            !it.equals("imported file", ignoreCase = true) &&
+            !it.equals("direct url", ignoreCase = true) &&
+            !it.equals("sound", ignoreCase = true)
+        }
+        .mapValues { it.value.sumOf { e -> e.spewCount } }
+        .toList()
+        .sortedByDescending { it.second }
+        .take(3)
+
+    topCategories.forEach { (cat, count) ->
+        if (list.none { it.query.equals(cat, ignoreCase = true) }) {
+            list.add(
+                VaultRecommendation(
+                    title = cat,
+                    query = cat,
+                    reason = "Favorite vault category ($count spews)"
+                )
+            )
+        }
+    }
+
+    return list
+}
+
 @Composable
 fun CloudLibraryScreen(
     onlineResults: List<LibraryItem>,
+    spewEntries: List<SpewEntry> = emptyList(),
     isSearchingOnline: Boolean,
     isLoadingMore: Boolean,
     hasMoreResults: Boolean,
@@ -104,19 +192,30 @@ fun CloudLibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedPreset by remember { mutableStateOf<String?>("Trending") }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedDuration by remember { mutableStateOf(DurationFilter.ANY) }
+    var selectedSort by remember { mutableStateOf(SortOrder.DEFAULT) }
+    var filterDialogOpen by remember { mutableStateOf(false) }
+    var recommendationsDialogOpen by remember { mutableStateOf(false) }
+    var activeVaultRecommendation by remember { mutableStateOf<String?>(null) }
     var customUrlDialogOpen by remember { mutableStateOf(false) }
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var addMenuExpanded by remember { mutableStateOf(false) }
-    var sourceMenuExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+
+    val vaultRecommendations = remember(spewEntries) {
+        extractVaultRecommendations(spewEntries)
+    }
+
+    val activeFilterCount = (if (selectedCategory != null) 1 else 0) +
+        (if (selectedDuration != DurationFilter.ANY) 1 else 0) +
+        (if (selectedSoundSource != SoundSource.ALL) 1 else 0) +
+        (if (selectedSort != SortOrder.DEFAULT) 1 else 0)
 
     // Debounce search query so user typing queries the online API
     LaunchedEffect(searchQuery) {
-        if (selectedPreset == null || searchQuery.isNotBlank()) {
-            delay(400)
-            onSearchOnline(searchQuery)
-        }
+        delay(400)
+        onSearchOnline(searchQuery)
     }
 
     // Infinite scroll detection: automatically fetch next 10 sounds as user scrolls down
@@ -149,9 +248,15 @@ fun CloudLibraryScreen(
         }
     }
 
-    // Combine local curated catalog with live online search results (deduplicating)
-    val displayedItems = remember(onlineResults, searchQuery) {
-        if (searchQuery.isBlank()) {
+    // Combine local curated catalog with live online search results and apply filter parameters
+    val displayedItems = remember(
+        onlineResults,
+        searchQuery,
+        selectedCategory,
+        selectedDuration,
+        selectedSort
+    ) {
+        val base = if (searchQuery.isBlank() && selectedCategory == null) {
             val localItems = CloudCatalog.items
             val localIds = localItems.map { it.id }.toSet()
             val localTitles = localItems.map { it.title.lowercase().trim() }.toSet()
@@ -161,6 +266,22 @@ fun CloudLibraryScreen(
             localItems + onlineFiltered
         } else {
             onlineResults
+        }
+
+        // Apply duration filter
+        val durationFiltered = when (selectedDuration) {
+            DurationFilter.ANY -> base
+            DurationFilter.SHORT -> base.filter { (it.durationMs ?: 0L) in 1..2999L }
+            DurationFilter.MEDIUM -> base.filter { (it.durationMs ?: 0L) in 3000L..9999L }
+            DurationFilter.LONG -> base.filter { (it.durationMs ?: 0L) >= 10000L }
+        }
+
+        // Apply sort
+        when (selectedSort) {
+            SortOrder.DEFAULT -> durationFiltered
+            SortOrder.SHORTEST_FIRST -> durationFiltered.sortedBy { it.durationMs ?: Long.MAX_VALUE }
+            SortOrder.LONGEST_FIRST -> durationFiltered.sortedByDescending { it.durationMs ?: 0L }
+            SortOrder.ALPHABETICAL -> durationFiltered.sortedBy { it.title.lowercase() }
         }
     }
 
@@ -238,7 +359,7 @@ fun CloudLibraryScreen(
             value = searchQuery,
             onValueChange = {
                 searchQuery = it
-                selectedPreset = null
+                activeVaultRecommendation = null
             },
             placeholder = "Search sounds",
             leadingIcon = PlayfulIcons.Library,
@@ -253,79 +374,129 @@ fun CloudLibraryScreen(
                                 .size(18.dp)
                         )
                     }
-                    if (searchQuery.isNotBlank()) {
+                    if (searchQuery.isNotBlank() || selectedCategory != null || activeVaultRecommendation != null) {
                         IconBlobButton(
                             icon = PlayfulIcons.Close,
                             contentDescription = "Clear search",
                             onClick = {
                                 searchQuery = ""
-                                selectedPreset = "Trending"
+                                selectedCategory = null
+                                activeVaultRecommendation = null
                                 onSearchOnline("")
                             }
                         )
                     }
-                    // Filter button to change sound sources (All Sources, Voicemod Tuna, MyInstants)
-                    Box {
-                        val isFiltered = selectedSoundSource != SoundSource.ALL
-                        IconBlobButton(
-                            icon = PlayfulIcons.Setup,
-                            contentDescription = "Select sound source: currently ${selectedSoundSource.label}",
-                            colour = if (isFiltered) MaterialTheme.colorScheme.primary else null,
-                            size = 38.dp,
-                            iconSize = 18.dp,
-                            onClick = { sourceMenuExpanded = true }
-                        )
-                        DropdownMenu(
-                            expanded = sourceMenuExpanded,
-                            onDismissRequest = { sourceMenuExpanded = false },
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        ) {
-                            Text(
-                                text = "SOUND SOURCE",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                            )
-                            SoundSource.entries.forEach { src ->
-                                val isSelected = selectedSoundSource == src
-                                PlayfulMenuItem(
-                                    text = if (isSelected) "✓  ${src.label}" else "    ${src.label}",
-                                    icon = PlayfulIcons.Library,
-                                    highlight = isSelected
-                                ) {
-                                    sourceMenuExpanded = false
-                                    onSelectSoundSource(src)
-                                }
-                            }
-                        }
-                    }
+                    // Filter button to configure parameters (Source, Duration, Category, Sort)
+                    val hasFilters = activeFilterCount > 0
+                    IconBlobButton(
+                        icon = PlayfulIcons.Setup,
+                        contentDescription = "Search filters and parameters ($activeFilterCount active)",
+                        colour = if (hasFilters) MaterialTheme.colorScheme.primary else null,
+                        size = 38.dp,
+                        iconSize = 18.dp,
+                        onClick = { filterDialogOpen = true }
+                    )
                 }
             }
         )
 
-        // Preset quick search chips, each a gummy colour; the selected one gets a light ring
+        // Filter & exploration parameters bar (replaces static suggested keywords)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            itemsIndexed(OnlineSoundService.PRESET_QUICK_SEARCHES) { index, (label, query) ->
-                val isSelected = selectedPreset == label ||
-                    (searchQuery.isNotBlank() && searchQuery.equals(query, ignoreCase = true))
+            // "✨ Recommended" button (based on Spew Vault)
+            item(key = "btn_recommended") {
+                val isRecActive = activeVaultRecommendation != null
                 Box(
                     modifier = Modifier
-                        .border(2.5.dp, if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent, ChipBlob)
-                        .padding(3.dp)
+                        .border(
+                            2.5.dp,
+                            if (isRecActive) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                            ChipBlob
+                        )
+                        .padding(2.dp)
                 ) {
                     BlobChip(
-                        text = label,
+                        text = if (isRecActive) "✨ Vault: $activeVaultRecommendation" else "✨ Recommended",
+                        selected = isRecActive,
+                        colour = "#FFB800".toComposeColor(),
+                        onClick = { recommendationsDialogOpen = true }
+                    )
+                }
+            }
+
+            // "Filters" button with active badge count
+            item(key = "btn_filter_parameters") {
+                val hasFilters = activeFilterCount > 0
+                Box(
+                    modifier = Modifier
+                        .border(
+                            2.5.dp,
+                            if (hasFilters) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                            ChipBlob
+                        )
+                        .padding(2.dp)
+                ) {
+                    BlobChip(
+                        text = if (hasFilters) "Filters ($activeFilterCount)" else "Filters",
+                        selected = hasFilters,
+                        colour = MaterialTheme.colorScheme.primary,
+                        onClick = { filterDialogOpen = true }
+                    )
+                }
+            }
+
+            // Quick explore categories
+            items(EXPLORE_CATEGORIES, key = { it }) { category ->
+                val isSelected = selectedCategory.equals(category, ignoreCase = true) ||
+                    (searchQuery.isNotBlank() && searchQuery.equals(category, ignoreCase = true))
+                val colIndex = (category.hashCode().let { if (it < 0) -it else it }) % PadPalette.size
+                Box(
+                    modifier = Modifier
+                        .border(
+                            2.5.dp,
+                            if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                            ChipBlob
+                        )
+                        .padding(2.dp)
+                ) {
+                    BlobChip(
+                        text = category,
                         selected = isSelected,
-                        colour = PadPalette[index % PadPalette.size].toComposeColor(),
+                        colour = PadPalette[colIndex].toComposeColor(),
                         onClick = {
-                            selectedPreset = label
-                            searchQuery = query
-                            onSearchOnline(query)
+                            activeVaultRecommendation = null
+                            if (isSelected) {
+                                selectedCategory = null
+                                searchQuery = ""
+                                onSearchOnline("")
+                            } else {
+                                selectedCategory = category
+                                searchQuery = category.lowercase()
+                                onSearchOnline(category.lowercase())
+                            }
+                        }
+                    )
+                }
+            }
+
+            // Reset filters chip if any are active
+            if (activeFilterCount > 0 || activeVaultRecommendation != null) {
+                item(key = "btn_reset_filters") {
+                    BlobChip(
+                        text = "Reset all ✕",
+                        selected = false,
+                        colour = MaterialTheme.colorScheme.error,
+                        onClick = {
+                            selectedCategory = null
+                            selectedDuration = DurationFilter.ANY
+                            selectedSort = SortOrder.DEFAULT
+                            activeVaultRecommendation = null
+                            onSelectSoundSource(SoundSource.ALL)
+                            searchQuery = ""
+                            onSearchOnline("")
                         }
                     )
                 }
@@ -345,7 +516,12 @@ fun CloudLibraryScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = if (searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery)) "Trending sounds" else "Search results",
+                    text = when {
+                        activeVaultRecommendation != null -> "Vault picks: \"$activeVaultRecommendation\""
+                        selectedCategory != null -> "Category: $selectedCategory"
+                        searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery) -> "Trending sounds"
+                        else -> "Search results"
+                    },
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge,
                 )
@@ -353,6 +529,14 @@ fun CloudLibraryScreen(
                     Text(
                         text = "(${selectedSoundSource.label})",
                         color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (selectedDuration != DurationFilter.ANY) {
+                    Text(
+                        text = "• ${selectedDuration.shortLabel}",
+                        color = MaterialTheme.colorScheme.tertiary,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -559,14 +743,6 @@ fun CloudLibraryScreen(
                         contentDescription = "Spew ${item.title} into voice chat"
                     )
 
-                    IconBlobButton(
-                        icon = PlayfulIcons.Share,
-                        contentDescription = "Share ${item.title} to chat (WhatsApp, Signal)",
-                        onClick = { onShareItem(item) },
-                        size = 40.dp,
-                        iconSize = 18.dp
-                    )
-
                     var itemMenuExpanded by remember { mutableStateOf(false) }
                     Box {
                         IconBlobButton(
@@ -753,6 +929,54 @@ fun CloudLibraryScreen(
             }
         }
     }
+
+    if (filterDialogOpen) {
+        SearchFilterDialog(
+            selectedSource = selectedSoundSource,
+            onSelectSource = {
+                onSelectSoundSource(it)
+                onSearchOnline(searchQuery)
+            },
+            selectedCategory = selectedCategory,
+            onSelectCategory = { cat ->
+                selectedCategory = cat
+                if (cat == null) {
+                    searchQuery = ""
+                    onSearchOnline("")
+                } else {
+                    searchQuery = cat.lowercase()
+                    onSearchOnline(cat.lowercase())
+                }
+            },
+            selectedDuration = selectedDuration,
+            onSelectDuration = { selectedDuration = it },
+            selectedSort = selectedSort,
+            onSelectSort = { selectedSort = it },
+            onResetFilters = {
+                selectedCategory = null
+                selectedDuration = DurationFilter.ANY
+                selectedSort = SortOrder.DEFAULT
+                activeVaultRecommendation = null
+                onSelectSoundSource(SoundSource.ALL)
+                searchQuery = ""
+                onSearchOnline("")
+            },
+            onDismiss = { filterDialogOpen = false }
+        )
+    }
+
+    if (recommendationsDialogOpen) {
+        VaultRecommendationsDialog(
+            recommendations = vaultRecommendations,
+            hasVaultEntries = spewEntries.isNotEmpty(),
+            onSelectRecommendation = { query ->
+                searchQuery = query
+                activeVaultRecommendation = query.ifBlank { "Trending" }
+                onSearchOnline(query)
+            },
+            onDismiss = { recommendationsDialogOpen = false }
+        )
+    }
 }
 
 /** A dropdown entry with a playful icon; [highlight] marks the Spew action in yellow. */
@@ -806,5 +1030,345 @@ private fun SearchStatusCard(failed: Boolean, query: String, onRetry: () -> Unit
             { SoftButton(text = "Retry", onClick = onRetry) }
         } else null
     )
+}
+
+@Composable
+private fun SearchFilterDialog(
+    selectedSource: SoundSource,
+    onSelectSource: (SoundSource) -> Unit,
+    selectedCategory: String?,
+    onSelectCategory: (String?) -> Unit,
+    selectedDuration: DurationFilter,
+    onSelectDuration: (DurationFilter) -> Unit,
+    selectedSort: SortOrder,
+    onSelectSort: (SortOrder) -> Unit,
+    onResetFilters: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Search Filters",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Narrow down and explore sounds",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconBlobButton(
+                        icon = PlayfulIcons.Close,
+                        contentDescription = "Close filter dialog",
+                        onClick = onDismiss,
+                        size = 36.dp,
+                        iconSize = 16.dp
+                    )
+                }
+
+                // 1. Sound Source
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "SOUND SOURCE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SoundSource.entries.forEach { src ->
+                            val isSelected = selectedSource == src
+                            BlobChip(
+                                text = src.label,
+                                selected = isSelected,
+                                colour = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                                onClick = { onSelectSource(src) }
+                            )
+                        }
+                    }
+                }
+
+                // 2. Clip Duration
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "DURATION",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        DurationFilter.entries.forEach { dur ->
+                            val isSelected = selectedDuration == dur
+                            BlobChip(
+                                text = dur.shortLabel,
+                                selected = isSelected,
+                                colour = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceContainer,
+                                onClick = { onSelectDuration(dur) }
+                            )
+                        }
+                    }
+                }
+
+                // 3. Category
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "EXPLORE CATEGORY",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        item {
+                            val isAll = selectedCategory == null
+                            BlobChip(
+                                text = "All",
+                                selected = isAll,
+                                colour = if (isAll) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainer,
+                                onClick = { onSelectCategory(null) }
+                            )
+                        }
+                        items(EXPLORE_CATEGORIES) { cat ->
+                            val isSelected = selectedCategory.equals(cat, ignoreCase = true)
+                            BlobChip(
+                                text = cat,
+                                selected = isSelected,
+                                colour = if (isSelected) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.surfaceContainer,
+                                onClick = { onSelectCategory(cat) }
+                            )
+                        }
+                    }
+                }
+
+                // 4. Sort Order
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "SORT BY",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(SortOrder.entries) { sort ->
+                            val isSelected = selectedSort == sort
+                            BlobChip(
+                                text = sort.label,
+                                selected = isSelected,
+                                colour = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                                onClick = { onSelectSort(sort) }
+                            )
+                        }
+                    }
+                }
+
+                // Dialog buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SoftButton(
+                        text = "Reset all",
+                        onClick = onResetFilters,
+                        light = false,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SpewButton(
+                        label = "Done",
+                        contentDescription = "Apply filters",
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VaultRecommendationsDialog(
+    recommendations: List<VaultRecommendation>,
+    hasVaultEntries: Boolean,
+    onSelectRecommendation: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "✨ Vault Recommendations",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Tuned to your Spew Vault history",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconBlobButton(
+                        icon = PlayfulIcons.Close,
+                        contentDescription = "Close recommendations",
+                        onClick = onDismiss,
+                        size = 36.dp,
+                        iconSize = 16.dp
+                    )
+                }
+
+                if (!hasVaultEntries || recommendations.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Your Spew Vault is quiet!",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Spew sounds into chat or equip pads on your soundboards, and Spewboard will learn your favorite meme themes to recommend community sounds.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        SoftButton(
+                            text = "Explore Trending Memes",
+                            onClick = {
+                                onSelectRecommendation("")
+                                onDismiss()
+                            },
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(recommendations) { rec ->
+                            CapsuleRow(
+                                selected = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectRecommendation(rec.query)
+                                        onDismiss()
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .gummy("#FFB800".toComposeColor(), ChipBlob),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = PlayfulIcons.Star,
+                                        contentDescription = null,
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = rec.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = rec.reason,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                SoftButton(
+                                    text = "Search",
+                                    onClick = {
+                                        onSelectRecommendation(rec.query)
+                                        onDismiss()
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SoftButton(
+                            text = "Surprise Me",
+                            onClick = {
+                                val randomPick = recommendations.random()
+                                onSelectRecommendation(randomPick.query)
+                                onDismiss()
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        SpewButton(
+                            label = "Done",
+                            contentDescription = "Close recommendations",
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
