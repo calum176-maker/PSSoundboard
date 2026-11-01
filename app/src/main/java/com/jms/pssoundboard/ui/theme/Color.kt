@@ -22,18 +22,9 @@ val SpewYellow = Color(0xFFFFA400)
 val StopRed = Color(0xFFFF4436)
 val CableAmber = Color(0xFFF6C35B)
 
-// ---- Legacy names, remapped to the playful palette until each screen is restyled ----------
-
-val SlateBackground = Ground
-val SlateSurface = Surface1
-val SlateSurfaceHigh = Surface2
-val SlateOutline = Color(0xFF3A3048)
-val SlateText = InkLight
-val SlateTextMuted = InkMuted
-
-val Teal = Color(0xFF7C3AED)
-val TealBright = Color(0xFFC4B5FD)
-val PanicRed = StopRed
+val SurfaceOutline = Color(0xFF3A3048)
+val AccentPurple = Color(0xFF7C3AED)
+val AccentLilac = Color(0xFFC4B5FD)
 val ReadyGreen = Color(0xFF3EE06A)
 val WarningAmber = Color(0xFFF59E0B)
 val StopInk = Color(0xFF1F0604)
@@ -62,6 +53,12 @@ val PresetColours = mapOf(
     "yoda" to Color(0xFF3EE06A),
 )
 
+/** Hardware Guide wiring diagram: the beep button and each plug section. */
+val BeepCyan = Color(0xFF16D4F5)
+val TipAmber = Color(0xFFFFA400)
+val SleevePink = Color(0xFFFF3D6E)
+val RingMuted = Color(0xFF8F82A3)
+
 /** Voice FX control colours, one per effect slider. */
 val PitchColour = Color(0xFFFF3D6E)
 val RobotColour = Color(0xFF4A86FF)
@@ -89,7 +86,7 @@ private val LegacyPadColours = mapOf(
     "#EAB308" to "#FFE020",
 )
 
-fun String.toComposeColor(fallback: Color = SlateOutline): Color =
+fun String.toComposeColor(fallback: Color = SurfaceOutline): Color =
     runCatching { Color(android.graphics.Color.parseColor(this)) }.getOrDefault(fallback)
 
 /** A pad's display colour: legacy pastels upgraded, anything else used as chosen. */

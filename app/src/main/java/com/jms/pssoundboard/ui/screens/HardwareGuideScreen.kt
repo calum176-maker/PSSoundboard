@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,23 +42,17 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.ui.components.PlayfulHeader
+import com.jms.pssoundboard.ui.theme.BeepCyan
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
-import com.jms.pssoundboard.ui.theme.CableAmber
 import com.jms.pssoundboard.ui.theme.ChipBlob
-import com.jms.pssoundboard.ui.theme.InkLight
-import com.jms.pssoundboard.ui.theme.InkMuted
 import com.jms.pssoundboard.ui.theme.PadShape
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
-import com.jms.pssoundboard.ui.theme.ReadyGreen
-import com.jms.pssoundboard.ui.theme.SlateOutline
-import com.jms.pssoundboard.ui.theme.Surface1
+import com.jms.pssoundboard.ui.theme.RingMuted
+import com.jms.pssoundboard.ui.theme.SleevePink
+import com.jms.pssoundboard.ui.theme.TipAmber
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
-
-private val BeepCyan = Color(0xFF16D4F5)
-private val TipAmber = Color(0xFFFFA400)
-private val SleevePink = Color(0xFFFF3D6E)
-private val RingMuted = Color(0xFF8F82A3)
+import com.jms.pssoundboard.ui.theme.spew
 
 private val ConnectionShape = RoundedCornerShape(topStart = 30.dp, topEnd = 24.dp, bottomEnd = 28.dp, bottomStart = 22.dp)
 private val TestShape = RoundedCornerShape(topStart = 24.dp, topEnd = 30.dp, bottomEnd = 22.dp, bottomStart = 28.dp)
@@ -90,7 +85,7 @@ fun HardwareGuideScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(ConnectionShape)
-                .background(Surface1)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(horizontal = 18.dp, vertical = 16.dp)
                 .semantics { contentDescription = "Connection check" },
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -98,23 +93,23 @@ fun HardwareGuideScreen(
             StatusLine(
                 label = "Loopback cable",
                 value = if (loopbackConnected) "Plugged in" else "Not plugged in",
-                colour = if (loopbackConnected) ReadyGreen else CableAmber
+                colour = if (loopbackConnected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
             )
             StatusLine(
                 label = "Headset mic line",
                 value = if (headsetMicDetected) "Found" else "Not found",
-                colour = if (headsetMicDetected) ReadyGreen else CableAmber
+                colour = if (headsetMicDetected) MaterialTheme.spew.ready else MaterialTheme.colorScheme.tertiary
             )
             StatusLine(
                 label = "Sound is coming out of",
                 value = outputDeviceName ?: if (loopbackConnected) "Wired or USB audio" else "Phone speaker",
-                colour = InkMuted,
-                valueColour = InkLight
+                colour = MaterialTheme.colorScheme.onSurfaceVariant,
+                valueColour = MaterialTheme.colorScheme.onSurface
             )
             StatusLine(
                 label = "Sounds go to the left channel only",
                 value = "Ready",
-                colour = ReadyGreen
+                colour = MaterialTheme.spew.ready
             )
         }
 
@@ -123,7 +118,7 @@ fun HardwareGuideScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(TestShape)
-                .background(Surface1)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -157,7 +152,7 @@ fun HardwareGuideScreen(
             }
             Text(
                 text = "Plays a steady beep. If the cable works, your mic lights up in your voice chat app.",
-                color = InkLight.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                 fontSize = 14.sp,
                 lineHeight = 19.sp,
                 modifier = Modifier.weight(1f)
@@ -169,13 +164,13 @@ fun HardwareGuideScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(CableShape)
-                .background(Surface1)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "Make the cable",
-                color = InkLight,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.semantics { heading() }
@@ -184,7 +179,7 @@ fun HardwareGuideScreen(
             TrrsPlug()
 
             NumberedStep(1, TipAmber) {
-                Text("Get a 3.5 mm plug with four sections (TRRS).", color = InkLight, fontSize = 14.sp, lineHeight = 19.sp)
+                Text("Get a 3.5 mm plug with four sections (TRRS).", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, lineHeight = 19.sp)
             }
             NumberedStep(2, SleevePink) {
                 Text(
@@ -195,13 +190,13 @@ fun HardwareGuideScreen(
                         withStyle(SpanStyle(color = SleevePink, fontWeight = FontWeight.Bold)) { append("Sleeve") }
                         append(" through a 10 kΩ resistor.")
                     },
-                    color = InkLight,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     lineHeight = 19.sp
                 )
             }
             NumberedStep(3, BeepCyan) {
-                Text("Plug it in, join a voice chat on this phone and tap Test beep.", color = InkLight, fontSize = 14.sp, lineHeight = 19.sp)
+                Text("Plug it in, join a voice chat on this phone and tap Test beep.", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, lineHeight = 19.sp)
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 2.dp)) {
@@ -216,14 +211,14 @@ fun HardwareGuideScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(CapsuleShape)
-                .background(Surface1)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Your decks", color = InkLight, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Your decks", color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
             Text(
                 "Save every deck, pad, sound and your Spew Vault to one file. Keep it safe, or open it on another phone to bring everything back.",
-                color = InkMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 lineHeight = 18.sp
             )
@@ -238,7 +233,7 @@ fun HardwareGuideScreen(
             title = "Found a bug or got an idea?",
             body = "Tell the team. The speech bubble at the top does the same from any screen.",
             art = {
-                Icon(PlayfulIcons.Feedback, contentDescription = null, tint = InkLight, modifier = Modifier.size(28.dp))
+                Icon(PlayfulIcons.Feedback, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
             },
             action = { SoftButton(text = "Send feedback", onClick = onSendFeedback) }
         )
@@ -265,7 +260,7 @@ private fun StatusLine(label: String, value: String, colour: Color, valueColour:
                 .clip(ChipBlob)
                 .background(colour)
         )
-        Text(label, color = InkLight, fontSize = 15.sp, lineHeight = 19.sp, modifier = Modifier.weight(1f))
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, lineHeight = 19.sp, modifier = Modifier.weight(1f))
         Text(value, color = valueColour, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
@@ -310,14 +305,14 @@ private fun TrrsPlug() {
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
-                    .background(SlateOutline)
+                    .background(MaterialTheme.colorScheme.outline)
             )
         }
         Row(modifier = Modifier.fillMaxWidth()) {
             sections.forEachIndexed { index, (name, _, width) ->
                 Text(
                     text = name,
-                    color = InkMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -349,5 +344,5 @@ private fun NumberedStep(number: Int, colour: Color, content: @Composable () -> 
 
 @Composable
 private fun HintLine(text: String) {
-    Text(text = text, color = InkMuted, fontSize = 13.sp, lineHeight = 18.sp)
+    Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, lineHeight = 18.sp)
 }
