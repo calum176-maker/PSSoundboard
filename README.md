@@ -1,13 +1,13 @@
-# 🎮 PS Soundboard & Live Voice Changer
+# 🎮 Spewboard
 
-An advanced, zero-latency Android soundboard and real-time voice changer designed specifically for mobile gaming, party chat (such as the PlayStation App), and live audio broadcasting via a 3.5mm TRRS hardware loopback cable.
+A zero-latency Android soundboard and voice changer that spews sounds into any voice chat on your phone (PlayStation App, Xbox app, Discord, Teams, WhatsApp and the rest) through a 3.5mm TRRS loopback cable.
 
 ## 📲 Get the test build
 
 [<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/calum176-maker/PSSoundboard)
 
 - **With [Obtainium](https://obtainium.imranr.dev/)** (recommended): tap the badge on your phone and it installs the app, then tells you whenever a new build is out.
-- **Directly**: [download the latest PSSoundboard.apk](https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk) and open it.
+- **Directly**: [download the latest Spewboard.apk](https://github.com/calum176-maker/PSSoundboard/releases/latest/download/Spewboard.apk) and open it.
 
 A new test build is published every time a change is merged. Coming from an older copy that wasn't installed from here? Use **Setup → Your decks → Export decks** first, uninstall, install the new one, then **Import decks**.
 
@@ -16,7 +16,7 @@ A new test build is published every time a change is merged. Coming from an olde
 ## ✨ Key Features
 
 ### 1. 🎙️ Live Voice Changer & Celebrity Presets
-Transform your voice in real time and spew modified audio straight into party chat:
+Transform your voice in real time and spew modified audio straight into voice chat:
 - **Instant Celebrity & Character Presets**:
   - **Arnold (Terminator)** (`🦾`): Deep action hero pitch shift (-4.5 st) + saturation drive.
   - **Darth Vader** (`🦹`): Dark lord pitch shift (-7.5 st) + robot ring-modulation + echo.
@@ -26,11 +26,11 @@ Transform your voice in real time and spew modified audio straight into party ch
   - **Master Yoda** (`🟢`): Wise sage pitch shift (+4.5 st) + gentle echo.
   - **Classics**: Chipmunk, Deep Voice, Demon, Robot, Pit Radio, Alien, Cave Echo, and Natural.
 - **Fine-Tuning Controls**: Adjustable pitch semitones, robot ring-mod frequency, pit-radio band-pass filter, saturation drive, echo mix, mic input gain, and noise gate threshold.
-- **Record, Test & Spew**: Record voice clips with active voice FX, audition them, spew them instantly into party chat, or save them to your vault.
+- **Record, Test & Spew**: Record voice clips with active voice FX, audition them, spew them instantly into voice chat, or save them to your vault.
 
 ### 2. 🎮 Zero-Latency Soundboard Engine
 - Built on Android's `SoundPool` for instant, zero-latency playback.
-- **Hard-Panned Audio Routing**: Automatically routes audio hard-left (`Tip -> 10k resistor -> Sleeve`) so the PlayStation App party chat receives your soundboard clips cleanly on the mic input while keeping right channel isolated.
+- **Hard-Panned Audio Routing**: Automatically routes audio hard-left (`Tip -> 10k resistor -> Sleeve`) so your voice chat app receives your soundboard clips cleanly on the mic input while keeping right channel isolated.
 - **Playback Modes**: One-Shot, Hold-to-Play (loop while holding), and Restart-on-Spam.
 
 ### 3. 🌐 Cloud Sound Library & Instant Search
@@ -47,15 +47,15 @@ Transform your voice in real time and spew modified audio straight into party ch
 
 ### 6. 🔌 Hardware Guide & Calibration Tone
 - Built-in wiring schematic and step-by-step guide for constructing the custom 3.5mm TRRS loopback plug.
-- 1 kHz calibration tone toggle to verify your loopback and party chat connection.
+- 1 kHz calibration tone toggle to verify your loopback and voice chat connection.
 
 ---
 
 ## 🔌 Hardware Setup (TRRS Loopback Plug)
-To feed your phone's soundboard and voice changer into a PlayStation party chat:
+To feed your phone's soundboard and voice changer into a voice chat:
 1. Construct a 3.5mm TRRS breakout plug bridging **Tip (Left Audio Out)** through a **10kΩ resistor** to **Sleeve (Microphone In)**.
 2. Plug the loopback cable into your phone's headphone jack (or USB-C to 3.5mm DAC).
-3. Open the PlayStation App on your phone, join a party voice chat, and test using the Hardware Guide calibration tone or Voice FX.
+3. Open your voice chat app on the same phone (PlayStation App, Xbox app, Discord, Teams…), join a call, and test using the Hardware Guide calibration tone or Voice FX.
 
 ---
 

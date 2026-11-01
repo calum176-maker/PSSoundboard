@@ -382,7 +382,7 @@ fun MainScreen(
                         isTestTonePlaying = isTestTonePlaying,
                         onToggleTestTone = { viewModel.toggleTestTone() },
                         onSendFeedback = { showFeedback = true },
-                        onExportDecks = { exportLauncher.launch("pssoundboard-backup-${LocalDate.now()}.zip") },
+                        onExportDecks = { exportLauncher.launch("spewboard-backup-${LocalDate.now()}.zip") },
                         onImportDecks = { importLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }
                     )
                 }
@@ -429,7 +429,7 @@ fun MainScreen(
                 viewModel.sendFeedback(category, screen, message, includeDetails) { report ->
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, "PSSoundboard feedback")
+                        putExtra(Intent.EXTRA_SUBJECT, "Spewboard feedback")
                         putExtra(Intent.EXTRA_TEXT, report)
                     }
                     context.startActivity(Intent.createChooser(send, "Share feedback"))
@@ -520,8 +520,8 @@ private fun TopStatusBar(
                     .background(statusColour)
             )
             Text(
-                text = if (loopbackConnected) "Loopback cable in: spews go to party"
-                else "Speaker mode: plug in the loopback cable to spew into party",
+                text = if (loopbackConnected) "Loopback cable in: spews go to your voice chat"
+                else "Speaker mode: plug in the loopback cable to spew into voice chat",
                 color = statusColour,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,

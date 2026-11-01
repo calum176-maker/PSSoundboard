@@ -299,7 +299,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     localFilePath = path,
                     category = item.category
                 )
-                _messages.tryEmit("⚡ Spewed: \"${item.title}\" into Party!")
+                _messages.tryEmit("⚡ Spewed: \"${item.title}\" into chat!")
             }.onFailure {
                 _messages.tryEmit("Spew failed: ${it.message ?: it.javaClass.simpleName}")
             }
@@ -368,7 +368,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     localFilePath = item.localUri,
                     builtinId = item.builtinId
                 )
-                _messages.tryEmit("💾 Saved \"${item.title}.wav\" to Downloads/PSSoundboard")
+                _messages.tryEmit("💾 Saved \"${item.title}.wav\" to Downloads/Spewboard")
             }.onFailure {
                 _messages.tryEmit("Failed to save: ${it.message ?: it.javaClass.simpleName}")
             }
@@ -393,7 +393,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             _busyMessage.value = null
-            _messages.tryEmit("💾 Saved $successCount / ${items.size} clips to Downloads/PSSoundboard")
+            _messages.tryEmit("💾 Saved $successCount / ${items.size} clips to Downloads/Spewboard")
         }
     }
 

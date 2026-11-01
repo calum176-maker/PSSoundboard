@@ -30,7 +30,7 @@ object OnlineSoundService {
 
     private const val TAG = "OnlineSoundService"
     private const val BASE_API = "https://www.myinstants.com/api/v1/instants/?format=json"
-    private const val USER_AGENT = "PSPartySoundboard/1.0 (Android; Hardware-Audio)"
+    private const val USER_AGENT = "Spewboard/1.0 (Android; Hardware-Audio)"
 
     private val cache = LinkedHashMap<String, OnlineSearchResult>()
 

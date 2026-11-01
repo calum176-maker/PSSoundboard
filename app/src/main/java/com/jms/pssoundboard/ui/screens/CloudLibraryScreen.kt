@@ -466,7 +466,7 @@ fun CloudLibraryScreen(
 
                     SpewButton(
                         onClick = { onSpewDirectly(item) },
-                        contentDescription = "Spew ${item.title} into party"
+                        contentDescription = "Spew ${item.title} into voice chat"
                     )
 
                     var itemMenuExpanded by remember { mutableStateOf(false) }
@@ -481,7 +481,7 @@ fun CloudLibraryScreen(
                             onDismissRequest = { itemMenuExpanded = false },
                             modifier = Modifier.background(Surface2)
                         ) {
-                            PlayfulMenuItem("Spew into party", PlayfulIcons.Speaker, highlight = true) {
+                            PlayfulMenuItem("Spew into chat", PlayfulIcons.Speaker, highlight = true) {
                                 itemMenuExpanded = false
                                 onSpewDirectly(item)
                             }

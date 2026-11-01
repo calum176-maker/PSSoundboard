@@ -81,7 +81,7 @@ fun HardwareGuideScreen(
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        PlayfulHeader(eyebrow = "Get your spews into party chat", title = "Setup")
+        PlayfulHeader(eyebrow = "Get your spews into voice chat", title = "Setup")
 
         // Connection check
         Column(
@@ -154,7 +154,7 @@ fun HardwareGuideScreen(
                 )
             }
             Text(
-                text = "Plays a steady beep. If the cable works, your mic ring lights up in PS App party chat.",
+                text = "Plays a steady beep. If the cable works, your mic lights up in your voice chat app.",
                 color = InkLight.copy(alpha = 0.9f),
                 fontSize = 14.sp,
                 lineHeight = 19.sp,
@@ -199,7 +199,7 @@ fun HardwareGuideScreen(
                 )
             }
             NumberedStep(3, BeepCyan) {
-                Text("Plug it in, join party chat and tap Test beep.", color = InkLight, fontSize = 14.sp, lineHeight = 19.sp)
+                Text("Plug it in, join a voice chat on this phone and tap Test beep.", color = InkLight, fontSize = 14.sp, lineHeight = 19.sp)
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 2.dp)) {

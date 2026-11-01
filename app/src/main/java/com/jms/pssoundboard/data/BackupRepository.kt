@@ -118,7 +118,7 @@ class BackupRepository(
         }
 
         val manifest = manifestJson?.let { runCatching { JSONObject(it) }.getOrNull() }
-            ?: throw IOException("This isn't a PSSoundboard backup")
+            ?: throw IOException("This isn't a Spewboard backup")
         if (manifest.optInt("format", 0) > FORMAT) throw IOException("This backup is from a newer version of the app")
         val deck = deckJson?.let { sounds.parseStateJson(it) } ?: throw IOException("The backup has no usable decks")
         val entries = vaultJson?.let { runCatching { vault.parse(it) }.getOrNull() } ?: emptyList()

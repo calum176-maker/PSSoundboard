@@ -436,7 +436,7 @@ private fun VaultRow(
                     itemMenuExpanded = false
                     onSaveToDownloads(entry)
                 }
-                VaultMenuItem("Spew into party", PlayfulIcons.Play, colour = SpewYellow) {
+                VaultMenuItem("Spew into chat", PlayfulIcons.Play, colour = SpewYellow) {
                     itemMenuExpanded = false
                     onSpewEntry(entry)
                 }

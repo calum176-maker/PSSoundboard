@@ -1,6 +1,6 @@
 # Builds a test APK for every pull request and every change to main.
 # Changes to main (and "Run workflow" on main) are also published as a GitHub release, so the newest APK is always at:
-#   https://github.com/calum176-maker/PSSoundboard/releases/latest/download/PSSoundboard.apk
+#   https://github.com/calum176-maker/PSSoundboard/releases/latest/download/Spewboard.apk
 # and Obtainium can track the releases for automatic updates (badge in README.md).
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
@@ -84,7 +84,7 @@ jobs:
         run: |
           # gradle.properties pins a Windows JDK path for local builds; use the runner's JDK instead.
           bash ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" assembleDebug lintDebug
-          cp app/build/outputs/apk/debug/app-debug.apk PSSoundboard.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Spewboard.apk
 
       - name: Remove signing key
         if: always()
@@ -92,8 +92,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PSSoundboard-build-${{ github.run_number }}
-          path: PSSoundboard.apk
+          name: Spewboard-build-${{ github.run_number }}
+          path: Spewboard.apk
 
       - name: Publish release
         # Merges to main publish, and so does "Run workflow" on main (Actions tab).
@@ -104,9 +104,9 @@ jobs:
           {
             echo "Test build 1.0.${{ github.run_number }} from \`${GITHUB_SHA::7}\`."
             echo
-            echo "**Install:** download PSSoundboard.apk below on your phone and open it."
+            echo "**Install:** download Spewboard.apk below on your phone and open it."
             echo "Before your first install from here, use Setup > Your decks > Export decks, then uninstall the old app (it was signed differently). After that, each new build installs over the last."
           } > notes.md
           # --generate-notes appends the pull requests merged since the previous build.
-          gh release create "v1.0.${{ github.run_number }}" PSSoundboard.apk \
+          gh release create "v1.0.${{ github.run_number }}" Spewboard.apk \
             --title "Test build 1.0.${{ github.run_number }}" --notes-file notes.md --generate-notes --target "$GITHUB_SHA"

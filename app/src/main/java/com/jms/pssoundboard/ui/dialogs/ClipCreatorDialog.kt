@@ -432,7 +432,7 @@ fun ClipCreatorDialog(
                                 fontSize = 12.sp
                             )
                             Text(
-                                text = "Boosts loudness cleanly for party loopback",
+                                text = "Boosts loudness cleanly for the loopback cable",
                                 color = SlateTextMuted,
                                 fontSize = 10.sp
                             )
