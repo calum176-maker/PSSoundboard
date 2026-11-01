@@ -205,7 +205,7 @@ fun HardwareGuideScreen(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 2.dp)) {
                 HintLine("Beep too loud or crackly? Add a 1 kΩ resistor from the Sleeve to the second Ring.")
                 HintLine("No headphone socket? Use a USB-C to 3.5 mm adapter with a built-in DAC.")
-                HintLine("While you play, tap the mini-deck button (top right, or bottom of the side bar when the phone is sideways) to keep your pads over the PS App.")
+                HintLine("While you play, tap the mini-deck button (top right, or bottom of the side bar when the phone is sideways) to keep your pads over your voice chat app. Tap its × or drag it to the bottom of the screen to close it.")
             }
         }
 

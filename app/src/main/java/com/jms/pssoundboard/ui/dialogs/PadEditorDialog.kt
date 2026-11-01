@@ -348,7 +348,7 @@ fun PadEditorDialog(
                             fontSize = 13.sp
                         )
                         Text(
-                            text = "Always appears in 3x2 overlay over PS App",
+                            text = "Shows in the floating mini-deck over your voice chat app",
                             color = SlateTextMuted,
                             fontSize = 11.sp
                         )
