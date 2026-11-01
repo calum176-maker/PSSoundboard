@@ -1,11 +1,8 @@
 package com.jms.pssoundboard.ui.dialogs
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -51,19 +45,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.ContextCompat
 import com.jms.pssoundboard.audio.AudioDecoder
 import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.WavUtils
 import com.jms.pssoundboard.data.model.DeckState
 import com.jms.pssoundboard.data.model.PadRef
+import com.jms.pssoundboard.ui.components.PadPicker
+import com.jms.pssoundboard.ui.components.RecordPanel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -89,7 +83,6 @@ fun ClipCreatorDialog(
     ) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var isRecording by remember { mutableStateOf(false) }
@@ -130,29 +123,26 @@ fun ClipCreatorDialog(
         }
     }
 
-    val micPermLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            val stop = AtomicBoolean(false)
-            stopRecordFlag = stop
-            isRecording = true
-            recordingJob = scope.launch {
-                runCatching {
-                    val recSamples = onRecordMic(stop) { ms, lvl ->
-                        recordElapsedMs = ms
-                        currentMicLevel = lvl
-                    }
-                    if (recSamples.isNotEmpty()) {
-                        samples = recSamples
-                        sampleRate = ClipRecorder.SAMPLE_RATE
-                        val dur = recSamples.size.toFloat() / ClipRecorder.SAMPLE_RATE
-                        totalDurationSec = dur
-                        trimRange = 0f..dur
-                    }
+    fun startRecording() {
+        val stop = AtomicBoolean(false)
+        stopRecordFlag = stop
+        isRecording = true
+        recordingJob = scope.launch {
+            runCatching {
+                val recSamples = onRecordMic(stop) { ms, lvl ->
+                    recordElapsedMs = ms
+                    currentMicLevel = lvl
                 }
-                isRecording = false
+                if (recSamples.isNotEmpty()) {
+                    samples = recSamples
+                    sampleRate = ClipRecorder.SAMPLE_RATE
+                    val dur = recSamples.size.toFloat() / ClipRecorder.SAMPLE_RATE
+                    totalDurationSec = dur
+                    trimRange = 0f..dur
+                    clipTitle = "Mic Recording"
+                }
             }
+            isRecording = false
         }
     }
 
@@ -207,127 +197,28 @@ fun ClipCreatorDialog(
                     }
                 }
 
-                // Recording / Source Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                RecordPanel(
+                    isRecording = isRecording,
+                    elapsedMs = recordElapsedMs,
+                    micLevel = currentMicLevel,
+                    maxSeconds = 10f,
+                    startDescription = "Start recording with the phone's mic",
+                    onStart = { startRecording() },
+                    onStop = {
+                        stopRecordFlag?.set(true)
+                        isRecording = false
+                    }
+                )
+
+                OutlinedButton(
+                    onClick = { filePicker.launch("audio/*") },
+                    enabled = !isRecording,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!isRecording) {
-                        Button(
-                            onClick = {
-                                val hasPerm = ContextCompat.checkSelfPermission(
-                                    context, Manifest.permission.RECORD_AUDIO
-                                ) == PackageManager.PERMISSION_GRANTED
-                                if (hasPerm) {
-                                    val stop = AtomicBoolean(false)
-                                    stopRecordFlag = stop
-                                    isRecording = true
-                                    recordingJob = scope.launch {
-                                        runCatching {
-                                            val recSamples = onRecordMic(stop) { ms, lvl ->
-                                                recordElapsedMs = ms
-                                                currentMicLevel = lvl
-                                            }
-                                            if (recSamples.isNotEmpty()) {
-                                                samples = recSamples
-                                                sampleRate = ClipRecorder.SAMPLE_RATE
-                                                val dur = recSamples.size.toFloat() / ClipRecorder.SAMPLE_RATE
-                                                totalDurationSec = dur
-                                                trimRange = 0f..dur
-                                                clipTitle = "Mic Recording"
-                                            }
-                                        }
-                                        isRecording = false
-                                    }
-                                } else {
-                                    micPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("● RECORD MIC", style = MaterialTheme.typography.labelSmall)
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                stopRecordFlag?.set(true)
-                                isRecording = false
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.spew.ready),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("■ STOP RECORDING", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = { filePicker.launch("audio/*") },
-                        enabled = !isRecording,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.secondary),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.spew.accent),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("📂 IMPORT AUDIO", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-
-                // Live recording meter
-                AnimatedVisibility(visible = isRecording) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "RECORDING (Phone Built-in Mic)",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                            Text(
-                                text = String.format("%.1f s / 10.0 s", recordElapsedMs / 1000f),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
-                        LinearProgressIndicator(
-                            progress = { (recordElapsedMs / 10000f).coerceIn(0f, 1f) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = MaterialTheme.colorScheme.error,
-                            trackColor = MaterialTheme.colorScheme.outline
-                        )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Text("Mic Level:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-                            LinearProgressIndicator(
-                                progress = { currentMicLevel.coerceIn(0f, 1f) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = MaterialTheme.spew.ready,
-                                trackColor = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
+                    Text("📂 IMPORT AUDIO", style = MaterialTheme.typography.bodySmall)
                 }
 
                 if (isDecoding) {
@@ -451,70 +342,15 @@ fun ClipCreatorDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Target Deck & Slot Selection
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Target Deck:",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(deckState.boards, key = { it.id }) { board ->
-                                val isSelected = board.id == targetBoardId
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isSelected) MaterialTheme.spew.accent else MaterialTheme.colorScheme.surfaceContainer)
-                                        .border(1.dp, if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                                        .clickable { targetBoardId = board.id }
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = board.name,
-                                        color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurface,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
-                            }
+                    PadPicker(
+                        deckState = deckState,
+                        selectedBoardId = targetBoardId,
+                        selectedSlot = targetSlot,
+                        onSelect = { boardId, slot ->
+                            targetBoardId = boardId
+                            targetSlot = slot
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Pad Slot (1 - 12):",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                (0 until 12).forEach { slot ->
-                                    val isSelected = slot == targetSlot
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(if (isSelected) MaterialTheme.spew.accent else MaterialTheme.colorScheme.surfaceContainer)
-                                            .border(1.dp, if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                                            .clickable { targetSlot = slot },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "${slot + 1}",
-                                            color = if (isSelected) MaterialTheme.spew.onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            style = MaterialTheme.typography.labelSmall,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    )
 
                     // Preview and Save Action Buttons
                     val targetBoardName = deckState.board(targetBoardId)?.name ?: "Deck"
