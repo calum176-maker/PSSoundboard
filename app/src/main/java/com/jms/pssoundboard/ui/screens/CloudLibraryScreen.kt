@@ -53,7 +53,6 @@ import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
-import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
@@ -88,8 +87,6 @@ fun CloudLibraryScreen(
     searchFailed: Boolean,
     loadMoreFailed: Boolean,
     previewingId: String?,
-    selectedSoundSource: SoundSource = SoundSource.ALL,
-    onSelectSoundSource: (SoundSource) -> Unit = {},
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
@@ -106,7 +103,7 @@ fun CloudLibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedPreset by remember { mutableStateOf<String?>("Trending Memes") }
+    var selectedPreset by remember { mutableStateOf<String?>("Trending") }
     var customUrlDialogOpen by remember { mutableStateOf(false) }
     var selectedItemIds by remember { mutableStateOf(setOf<String>()) }
     var addMenuExpanded by remember { mutableStateOf(false) }
@@ -255,7 +252,7 @@ fun CloudLibraryScreen(
                             contentDescription = "Clear search",
                             onClick = {
                                 searchQuery = ""
-                                selectedPreset = "Trending Memes"
+                                selectedPreset = "Trending"
                                 onSearchOnline("")
                             }
                         )
@@ -263,23 +260,6 @@ fun CloudLibraryScreen(
                 }
             }
         )
-
-        // Sound source filter chips (All sources, 101Soundboards, MyInstants)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SoundSource.entries.forEachIndexed { index, src ->
-                val isSelected = selectedSoundSource == src
-                BlobChip(
-                    text = src.label,
-                    selected = isSelected,
-                    colour = PadPalette[(index + 3) % PadPalette.size].toComposeColor(),
-                    onClick = { onSelectSoundSource(src) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
 
         // Preset quick search chips, each a gummy colour; the selected one gets a light ring
         LazyRow(
@@ -318,7 +298,7 @@ fun CloudLibraryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (searchQuery.isBlank()) "Popular sounds" else "Search results",
+                text = if (searchQuery.isBlank() || OnlineSoundService.isTrendingQuery(searchQuery)) "Trending sounds" else "Search results",
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
@@ -495,7 +475,6 @@ fun CloudLibraryScreen(
                                 )
                         )
                         val source = when {
-                            item.source.contains("101", ignoreCase = true) -> "101Soundboards"
                             item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
                             item.source.contains("built-in", ignoreCase = true) -> "built-in"
                             item.url != null -> "online"
