@@ -236,7 +236,6 @@ fun MainScreen(
     val totalOnlineCount by viewModel.totalOnlineCount.collectAsState()
     val onlineSearchFailed by viewModel.onlineSearchFailed.collectAsState()
     val loadMoreFailed by viewModel.loadMoreFailed.collectAsState()
-    val selectedSoundSource by viewModel.selectedSoundSource.collectAsState()
     val voiceFxParams by viewModel.voiceFxParams.collectAsState()
     val activePresetId by viewModel.activePresetId.collectAsState()
 
@@ -373,8 +372,6 @@ fun MainScreen(
                         searchFailed = onlineSearchFailed,
                         loadMoreFailed = loadMoreFailed,
                         previewingId = previewingId,
-                        selectedSoundSource = selectedSoundSource,
-                        onSelectSoundSource = { viewModel.setSoundSource(it) },
                         onSearchOnline = { viewModel.searchOnline(it) },
                         onRetrySearch = { viewModel.retryOnlineSearch() },
                         onLoadMore = { viewModel.loadMoreOnline() },

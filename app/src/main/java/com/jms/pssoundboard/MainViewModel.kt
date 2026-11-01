@@ -22,7 +22,6 @@ import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
-import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.data.SpewVaultRepository
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.DeckState
@@ -90,16 +89,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** The last "load more" failed; scrolling stops retrying until the user taps to try again. */
     private val _loadMoreFailed = MutableStateFlow(false)
     val loadMoreFailed: StateFlow<Boolean> = _loadMoreFailed.asStateFlow()
-
-    private val _selectedSoundSource = MutableStateFlow(SoundSource.ALL)
-    val selectedSoundSource: StateFlow<SoundSource> = _selectedSoundSource.asStateFlow()
-
-    fun setSoundSource(source: SoundSource) {
-        if (_selectedSoundSource.value != source) {
-            _selectedSoundSource.value = source
-            searchOnline(activeSearchQuery)
-        }
-    }
 
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
@@ -560,7 +549,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
-            val pageResult = OnlineSoundService.searchSounds(query, page = 1, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(query, page = 1)
             _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
@@ -580,7 +569,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
             _loadMoreFailed.value = false
-            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage, source = _selectedSoundSource.value)
+            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
                 val existingUrls = _onlineSearchResults.value.mapNotNull { it.url }.toSet()
