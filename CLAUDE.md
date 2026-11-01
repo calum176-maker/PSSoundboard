@@ -11,6 +11,9 @@ the same PR.
   through a 3.5 mm TRRS loopback cable.
 - **Calum** (`calum176-maker`) owns the product and decides what it does. Ask before changing
   behaviour, naming or anything a user would notice beyond your issue.
+- **`ROADMAP.md` is the source of truth** for features and direction. Suggestions and feedback that
+  would change the app go in as a **Proposed** row; build only what Calum has marked **Approved**.
+  Only Calum changes a status.
 - AJ (`lt-flan`), Bryan (`lt-bryan`) and Steve (`lt-steve`) work on UI, UX and polish.
 - Kotlin, Jetpack Compose, Material 3. minSdk 26, targetSdk 37.
 
