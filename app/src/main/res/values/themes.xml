@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- The dark ground behind everything, so nothing flashes white before Compose draws. -->
-    <style name="Theme.PSSoundboard" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- The dark ground behind everything, so nothing flashes white before Compose draws. A dark parent
+         so anything the platform draws itself (system bars, overscroll, framework dialogs) is dark too. -->
+    <style name="Theme.PSSoundboard" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
     </style>
 
