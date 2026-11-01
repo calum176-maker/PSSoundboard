@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,11 +29,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.jms.pssoundboard.ui.theme.Bricolage
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
@@ -301,3 +305,28 @@ fun SoftButton(
         Text(text, color = if (light) Ground else InkLight, fontWeight = FontWeight.Bold, fontSize = 15.sp)
     }
 }
+
+/**
+ * A pad name that shrinks to fit rather than splitting a word across lines (at large font sizes
+ * or on narrow pads). It gets at most one line per word, so a long single word can only shrink.
+ */
+@Composable
+fun PadLabel(
+    text: String,
+    style: TextStyle,
+    maxLines: Int,
+    modifier: Modifier = Modifier,
+    minFontSize: TextUnit = 9.sp,
+) {
+    val words = text.trim().split(WhitespaceRegex).size
+    BasicText(
+        text = text,
+        modifier = modifier,
+        style = LocalTextStyle.current.merge(style),
+        maxLines = minOf(maxLines, words),
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(minFontSize = minFontSize, maxFontSize = style.fontSize, stepSize = 0.5.sp)
+    )
+}
+
+private val WhitespaceRegex = Regex("\\s+")

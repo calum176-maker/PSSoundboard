@@ -1,5 +1,8 @@
 package com.jms.pssoundboard.ui.screens
 
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.TextStyle
+import com.jms.pssoundboard.ui.components.PadLabel
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalConfiguration
@@ -681,30 +684,34 @@ private fun TactilePad(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Text(
+                PadLabel(
                     text = pad.title,
-                    color = ink,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 40.sp,
-                    lineHeight = 38.sp,
+                    style = TextStyle(
+                        color = ink,
+                        fontFamily = BricolageCondensed,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 40.sp,
+                        lineHeight = 0.95.em
+                    ),
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    minFontSize = 20.sp
                 )
                 Text(pad.mode.shortLabel, color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                PadLabel(
                     text = if (hasSound) pad.title else "Empty",
-                    color = ink,
-                    fontFamily = BricolageCondensed,
-                    fontWeight = if (hasSound) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    lineHeight = 17.sp,
+                    style = TextStyle(
+                        color = ink,
+                        fontFamily = BricolageCondensed,
+                        fontWeight = if (hasSound) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        lineHeight = 1.06.em,
+                        textAlign = TextAlign.Center
+                    ),
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    minFontSize = 10.sp
                 )
                 if (hasSound) {
                     Text(
