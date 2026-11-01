@@ -12,6 +12,7 @@ data class LibraryItem(
     val url: String? = null,
     val builtinId: String? = null,
     val localUri: String? = null,
+    val source: String = "Built-in",
 ) {
     val isRemote: Boolean get() = url != null
 }
@@ -25,11 +26,11 @@ object CloudCatalog {
     private const val BASE = "https://actions.google.com/sounds/v1"
 
     private fun remote(category: String, path: String, title: String) =
-        LibraryItem(id = "gsl:$path", title = title, category = category, url = "$BASE/$path.ogg")
+        LibraryItem(id = "gsl:$path", title = title, category = category, url = "$BASE/$path.ogg", source = "Google Actions")
 
     val items: List<LibraryItem> by lazy {
         SynthTestClipsGenerator.CLIPS.map {
-            LibraryItem(id = "builtin:${it.id}", title = it.title, category = BUILT_IN, builtinId = it.id)
+            LibraryItem(id = "builtin:${it.id}", title = it.title, category = BUILT_IN, builtinId = it.id, source = "Built-in")
         } + listOf(
             remote("Alarms", "alarms/beep_short", "Short Beep"),
             remote("Alarms", "alarms/spaceship_alarm", "Spaceship Alarm"),

@@ -20,6 +20,7 @@ import com.jms.pssoundboard.data.FeedbackRepository
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
 import com.jms.pssoundboard.data.SoundRepository
+import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.data.SpewVaultRepository
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.DeckState
@@ -87,6 +88,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** The last "load more" failed; scrolling stops retrying until the user taps to try again. */
     private val _loadMoreFailed = MutableStateFlow(false)
     val loadMoreFailed: StateFlow<Boolean> = _loadMoreFailed.asStateFlow()
+
+    private val _selectedSoundSource = MutableStateFlow(SoundSource.ALL)
+    val selectedSoundSource: StateFlow<SoundSource> = _selectedSoundSource.asStateFlow()
+
+    fun setSoundSource(source: SoundSource) {
+        if (_selectedSoundSource.value != source) {
+            _selectedSoundSource.value = source
+            searchOnline(activeSearchQuery)
+        }
+    }
 
     private var currentOnlinePage = 1
     private var activeSearchQuery = ""
@@ -436,7 +447,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _loadMoreFailed.value = false
         searchJob = viewModelScope.launch {
             _isSearchingOnline.value = true
-            val pageResult = OnlineSoundService.searchSounds(query, page = 1)
+            val pageResult = OnlineSoundService.searchSounds(query, page = 1, source = _selectedSoundSource.value)
             _onlineSearchFailed.value = pageResult.failed
             _onlineSearchResults.value = pageResult.items
             _hasMoreOnlineResults.value = pageResult.hasMore
@@ -456,7 +467,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadMoreJob = viewModelScope.launch {
             _isLoadingMoreOnline.value = true
             _loadMoreFailed.value = false
-            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage)
+            val pageResult = OnlineSoundService.searchSounds(activeSearchQuery, page = nextPage, source = _selectedSoundSource.value)
             if (pageResult.items.isNotEmpty()) {
                 val existingIds = _onlineSearchResults.value.map { it.id }.toSet()
                 val existingUrls = _onlineSearchResults.value.mapNotNull { it.url }.toSet()
@@ -513,37 +524,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stopPreview(); return
         }
         stopPreview()
-        val source = when {
-            item.builtinId != null -> repository.builtinPath(item.builtinId)
-            item.url != null -> item.url
-            item.localUri != null -> item.localUri
-            else -> return
-        }
-        val player = MediaPlayer()
-        previewPlayer = player
         _previewingId.value = item.id
-        runCatching {
-            player.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build()
-            )
-            if (item.localUri != null) player.setDataSource(getApplication(), Uri.parse(source))
-            else player.setDataSource(source)
-            val g = engine.gain.value
-            player.setVolume(g, g)
-            player.setOnPreparedListener { it.start() }
-            player.setOnCompletionListener { if (previewPlayer === it) stopPreview() }
-            player.setOnErrorListener { mp, _, _ ->
-                if (previewPlayer === mp) {
-                    stopPreview(); _messages.tryEmit("Preview failed (check your connection)")
+        viewModelScope.launch {
+            val source = when {
+                item.builtinId != null -> repository.builtinPath(item.builtinId)
+                item.url != null -> OnlineSoundService.resolveAudioUrl(item.url)
+                item.localUri != null -> item.localUri
+                else -> {
+                    _previewingId.value = null
+                    return@launch
                 }
-                true
             }
-            player.prepareAsync()
-        }.onFailure {
-            stopPreview(); _messages.tryEmit("Preview failed: ${it.message}")
+            if (_previewingId.value != item.id) return@launch
+            val player = MediaPlayer()
+            previewPlayer = player
+            runCatching {
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                if (item.localUri != null) player.setDataSource(getApplication(), Uri.parse(source))
+                else player.setDataSource(source)
+                val g = engine.gain.value
+                player.setVolume(g, g)
+                player.setOnPreparedListener { it.start() }
+                player.setOnCompletionListener { if (previewPlayer === it) stopPreview() }
+                player.setOnErrorListener { mp, _, _ ->
+                    if (previewPlayer === mp) {
+                        stopPreview(); _messages.tryEmit("Preview failed (check your connection)")
+                    }
+                    true
+                }
+                player.prepareAsync()
+            }.onFailure {
+                stopPreview(); _messages.tryEmit("Preview failed: ${it.message}")
+            }
         }
     }
 

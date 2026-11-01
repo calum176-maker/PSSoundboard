@@ -7,7 +7,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +53,7 @@ import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.CloudCatalog
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.OnlineSoundService
+import com.jms.pssoundboard.data.SoundSource
 import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.CapsuleShape
@@ -84,6 +88,8 @@ fun CloudLibraryScreen(
     searchFailed: Boolean,
     loadMoreFailed: Boolean,
     previewingId: String?,
+    selectedSoundSource: SoundSource = SoundSource.ALL,
+    onSelectSoundSource: (SoundSource) -> Unit = {},
     onSearchOnline: (String) -> Unit,
     onRetrySearch: () -> Unit,
     onLoadMore: () -> Unit,
@@ -255,6 +261,23 @@ fun CloudLibraryScreen(
                 }
             }
         )
+
+        // Sound source filter chips (All sources, 101Soundboards, MyInstants)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SoundSource.entries.forEachIndexed { index, src ->
+                val isSelected = selectedSoundSource == src
+                BlobChip(
+                    text = src.label,
+                    selected = isSelected,
+                    colour = PadPalette[(index + 3) % PadPalette.size].toComposeColor(),
+                    onClick = { onSelectSoundSource(src) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
 
         // Preset quick search chips, each a gummy colour; the selected one gets a light ring
         LazyRow(
@@ -435,17 +458,41 @@ fun CloudLibraryScreen(
                     )
 
                     Column(modifier = Modifier.weight(1f)) {
+                        var isScrollingTitle by remember(item.id) { mutableStateOf(false) }
+
                         Text(
                             text = item.title,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isScrollingTitle = !isScrollingTitle
+                                }
+                                .then(
+                                    if (isScrollingTitle) {
+                                        Modifier.basicMarquee(
+                                            iterations = Int.MAX_VALUE,
+                                            initialDelayMillis = 150,
+                                            repeatDelayMillis = 1200,
+                                            velocity = 45.dp
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                         )
                         val source = when {
+                            item.source.contains("101", ignoreCase = true) -> "101Soundboards"
+                            item.source.contains("myinstants", ignoreCase = true) -> "MyInstants"
+                            item.source.contains("built-in", ignoreCase = true) -> "built-in"
                             item.url != null -> "online"
-                            // Built-in items already say so in their category.
                             item.builtinId != null && !item.category.contains("built-in", ignoreCase = true) -> "built-in"
                             else -> null
                         }

@@ -244,7 +244,8 @@ class SoundRepository(
     }
 
     /** Downloads (or reuses the cached copy of) a remote clip into `sound_cache/`. */
-    suspend fun downloadFromUrl(url: String): File = withContext(Dispatchers.IO) {
+    suspend fun downloadFromUrl(rawUrl: String): File = withContext(Dispatchers.IO) {
+        val url = OnlineSoundService.resolveAudioUrl(rawUrl)
         val hash = url.hashCode().toUInt().toString(16)
         val baseName = sanitize(url.substringAfterLast('/').substringBefore('?').ifBlank { "clip" })
         val converted = File(cacheDir, "dl_${hash}_${baseName.substringBeforeLast('.')}_mono.wav")
