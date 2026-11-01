@@ -4,9 +4,11 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jms.pssoundboard.audio.AudioDecoder
@@ -430,6 +432,117 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         saveMultipleToDownloads(items)
+    }
+
+    // ---- Audio Sharing (WhatsApp, Signal, Discord, etc.) -------------------------------------
+
+    fun shareSound(
+        title: String,
+        url: String? = null,
+        localFilePath: String? = null,
+        builtinId: String? = null,
+    ) {
+        viewModelScope.launch {
+            _busyMessage.value = "Preparing \"$title\" to share…"
+            runCatching {
+                val file = repository.prepareSoundFileForSharing(
+                    title = title,
+                    url = url,
+                    localFilePath = localFilePath,
+                    builtinId = builtinId
+                )
+                val contentUri = FileProvider.getUriForFile(
+                    app,
+                    "${app.packageName}.fileprovider",
+                    file
+                )
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "audio/*"
+                    putExtra(Intent.EXTRA_STREAM, contentUri)
+                    putExtra(Intent.EXTRA_SUBJECT, title)
+                    putExtra(Intent.EXTRA_TEXT, title)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(shareIntent, "Share \"$title\" via…").apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                app.startActivity(chooser)
+            }.onFailure {
+                _messages.tryEmit("Failed to share audio: ${it.message ?: it.javaClass.simpleName}")
+            }
+            _busyMessage.value = null
+        }
+    }
+
+    fun shareLibraryItem(item: LibraryItem) {
+        shareSound(
+            title = item.title,
+            url = item.url,
+            localFilePath = item.localUri,
+            builtinId = item.builtinId
+        )
+    }
+
+    fun shareMultipleLibraryItems(items: List<LibraryItem>) {
+        if (items.isEmpty()) return
+        if (items.size == 1) {
+            shareLibraryItem(items.first())
+            return
+        }
+        viewModelScope.launch {
+            _busyMessage.value = "Preparing ${items.size} clips to share…"
+            runCatching {
+                val uris = ArrayList<Uri>()
+                items.forEach { item ->
+                    val file = repository.prepareSoundFileForSharing(
+                        title = item.title,
+                        url = item.url,
+                        localFilePath = item.localUri,
+                        builtinId = item.builtinId
+                    )
+                    uris.add(
+                        FileProvider.getUriForFile(
+                            app,
+                            "${app.packageName}.fileprovider",
+                            file
+                        )
+                    )
+                }
+                val shareIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                    type = "audio/*"
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val chooser = Intent.createChooser(shareIntent, "Share ${items.size} clips via…").apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                app.startActivity(chooser)
+            }.onFailure {
+                _messages.tryEmit("Failed to share audio: ${it.message ?: it.javaClass.simpleName}")
+            }
+            _busyMessage.value = null
+        }
+    }
+
+    fun shareSpewEntry(entry: SpewEntry) {
+        shareSound(
+            title = entry.title,
+            url = entry.sourceUrl,
+            localFilePath = entry.localFilePath
+        )
+    }
+
+    fun shareMultipleSpewEntries(entries: List<SpewEntry>) {
+        val items = entries.map { entry ->
+            LibraryItem(
+                id = entry.id,
+                title = entry.title,
+                category = entry.category,
+                url = entry.sourceUrl,
+                localUri = entry.localFilePath
+            )
+        }
+        shareMultipleLibraryItems(items)
     }
 
     // ---- Online Search (Internet & Movie Clips - 10 At A Time with Infinite Scroll) --------

@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.PadShape
+import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.padColour
 import androidx.compose.foundation.background
@@ -30,6 +31,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
@@ -65,6 +67,7 @@ fun PadEditorDialog(
     isFavorite: Boolean,
     onAudition: (path: String) -> Unit,
     builtinClipResolver: (clipId: String) -> String,
+    onShareSound: (title: String, filePath: String) -> Unit = { _, _ -> },
     onSave: (updatedPad: Pad, isFavorite: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -315,6 +318,19 @@ fun PadEditorDialog(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("Test", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    Button(
+                        onClick = { currentFilePath?.let { onShareSound(title, it) } },
+                        enabled = currentFilePath != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, contentColor = MaterialTheme.colorScheme.onSurface),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = PlayfulIcons.Share,
+                            contentDescription = "Share audio file to chat",
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
 

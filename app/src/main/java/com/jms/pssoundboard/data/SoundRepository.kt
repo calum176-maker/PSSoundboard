@@ -376,6 +376,31 @@ class SoundRepository(
         }
     }
 
+    /**
+     * Prepares an audio clip for sharing (via WhatsApp, Signal, etc.) by ensuring the audio file
+     * is available locally in the cache directory with a user-friendly filename matching its title.
+     */
+    suspend fun prepareSoundFileForSharing(
+        title: String,
+        url: String? = null,
+        localFilePath: String? = null,
+        builtinId: String? = null,
+    ): File = withContext(Dispatchers.IO) {
+        val sourceFile: File = when {
+            !localFilePath.isNullOrBlank() && File(localFilePath).exists() -> File(localFilePath)
+            !url.isNullOrBlank() -> downloadFromUrl(url)
+            !builtinId.isNullOrBlank() -> File(builtinPath(builtinId))
+            else -> throw IllegalArgumentException("No audio source available to share")
+        }
+
+        val cleanTitle = sanitize(title).ifBlank { "sound_${System.currentTimeMillis()}" }
+        val shareDir = File(context.cacheDir, "shared_audio").apply { mkdirs() }
+        val ext = if (sourceFile.extension.isNotBlank()) sourceFile.extension else "wav"
+        val shareFile = File(shareDir, "$cleanTitle.$ext")
+        sourceFile.copyTo(shareFile, overwrite = true)
+        shareFile
+    }
+
     private fun sanitize(name: String): String =
         name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(60).ifBlank { "clip" }
 }

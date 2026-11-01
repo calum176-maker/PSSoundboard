@@ -361,6 +361,8 @@ fun MainScreen(
                         onClearAll = { viewModel.clearSpewVault() },
                         onSaveToDownloads = { viewModel.saveSpewEntryToDownloads(it) },
                         onSaveMultipleToDownloads = { viewModel.saveMultipleSpewEntriesToDownloads(it) },
+                        onShareEntry = { viewModel.shareSpewEntry(it) },
+                        onShareMultipleEntries = { viewModel.shareMultipleSpewEntries(it) },
                         onCopyToClipboard = { label, text -> viewModel.copyToClipboard(label, text) }
                     )
                     2 -> CloudLibraryScreen(
@@ -387,6 +389,8 @@ fun MainScreen(
                         onDisplayName = { viewModel.displayName(it) },
                         onSaveToDownloads = { viewModel.saveToDownloads(it) },
                         onSaveMultipleToDownloads = { viewModel.saveMultipleToDownloads(it) },
+                        onShareItem = { viewModel.shareLibraryItem(it) },
+                        onShareMultipleItems = { viewModel.shareMultipleLibraryItems(it) },
                         onCopyToClipboard = { label, text -> viewModel.copyToClipboard(label, text) }
                     )
                     3 -> VoiceChangerScreen(
@@ -475,6 +479,7 @@ fun MainScreen(
             isFavorite = isFav,
             onAudition = { viewModel.auditionFile(it) },
             builtinClipResolver = { viewModel.builtinPath(it) },
+            onShareSound = { soundTitle, path -> viewModel.shareSound(title = soundTitle, localFilePath = path) },
             onSave = { updatedPad, favorite ->
                 viewModel.savePad(boardId, updatedPad, favorite)
                 editingPadInfo = null

@@ -61,6 +61,15 @@ object PlayfulIcons {
     val Check = icon("check", stroked = listOf("M5 12.5l4.5 4.5L19 7.5"))
     val Speaker = icon("speaker", stroked = listOf("M11 5 6 9H2v6h4l5 4z", "M15.5 8.5a5 5 0 0 1 0 7"))
     val Download = icon("download", stroked = listOf("M12 4v11", "M7 10.5l5 5 5-5", "M5 20h14"))
+    val Share = icon(
+        "share",
+        stroked = listOf(
+            "M8.5 13.5l7 4M15.5 6.5l-7 4",
+            ellipse(18f, 5f, 2.5f, 2.5f),
+            ellipse(6f, 12f, 2.5f, 2.5f),
+            ellipse(18f, 19f, 2.5f, 2.5f),
+        ),
+    )
     val Copy = icon("copy", stroked = listOf("M9 9h10v11H9z", "M5 15V4h10"))
     val Trash = icon("trash", stroked = listOf("M4 7h16", "M9 7V4h6v3", "M6.5 7l1 13h9l1-13"))
     val Mic = Voice

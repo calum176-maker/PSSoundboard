@@ -73,6 +73,8 @@ fun SpewVaultScreen(
     onClearAll: () -> Unit,
     onSaveToDownloads: (SpewEntry) -> Unit,
     onSaveMultipleToDownloads: (List<SpewEntry>) -> Unit,
+    onShareEntry: (SpewEntry) -> Unit = {},
+    onShareMultipleEntries: (List<SpewEntry>) -> Unit = {},
     onCopyToClipboard: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -225,6 +227,10 @@ fun SpewVaultScreen(
                             batchMenuExpanded = false
                             onSaveMultipleToDownloads(selectedList())
                         }
+                        VaultMenuItem("Share selected to chat", PlayfulIcons.Share) {
+                            batchMenuExpanded = false
+                            onShareMultipleEntries(selectedList())
+                        }
                         VaultMenuItem("Delete selected", PlayfulIcons.Trash, colour = MaterialTheme.colorScheme.error) {
                             batchMenuExpanded = false
                             onDeleteEntries(selectedEntryIds)
@@ -302,6 +308,7 @@ fun SpewVaultScreen(
                         onTogglePin = onTogglePin,
                         onDeleteEntries = onDeleteEntries,
                         onSaveToDownloads = onSaveToDownloads,
+                        onShareEntry = onShareEntry,
                         onCopyToClipboard = onCopyToClipboard
                     )
                 }
@@ -320,6 +327,7 @@ private fun VaultRow(
     onTogglePin: (String) -> Unit,
     onDeleteEntries: (Set<String>) -> Unit,
     onSaveToDownloads: (SpewEntry) -> Unit,
+    onShareEntry: (SpewEntry) -> Unit,
     onCopyToClipboard: (String, String) -> Unit,
 ) {
     val blobColour = blobColourFor(entry.id)
@@ -433,6 +441,14 @@ private fun VaultRow(
             contentDescription = "Spew ${entry.title} again"
         )
 
+        IconBlobButton(
+            icon = PlayfulIcons.Share,
+            contentDescription = "Share ${entry.title} to WhatsApp, Signal or other apps",
+            onClick = { onShareEntry(entry) },
+            size = 40.dp,
+            iconSize = 18.dp
+        )
+
         var itemMenuExpanded by remember { mutableStateOf(false) }
         Box {
             IconBlobButton(
@@ -445,6 +461,10 @@ private fun VaultRow(
                 onDismissRequest = { itemMenuExpanded = false },
                 modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
+                VaultMenuItem("Share sound file", PlayfulIcons.Share) {
+                    itemMenuExpanded = false
+                    onShareEntry(entry)
+                }
                 VaultMenuItem("Copy sound link", PlayfulIcons.Copy) {
                     itemMenuExpanded = false
                     val link = entry.sourceUrl ?: entry.localFilePath ?: entry.title

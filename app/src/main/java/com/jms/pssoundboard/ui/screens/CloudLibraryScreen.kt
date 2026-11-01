@@ -100,6 +100,8 @@ fun CloudLibraryScreen(
     onDisplayName: (Uri) -> String,
     onSaveToDownloads: (LibraryItem) -> Unit,
     onSaveMultipleToDownloads: (List<LibraryItem>) -> Unit,
+    onShareItem: (LibraryItem) -> Unit = {},
+    onShareMultipleItems: (List<LibraryItem>) -> Unit = {},
     onCopyToClipboard: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -387,6 +389,10 @@ fun CloudLibraryScreen(
                             batchMenuExpanded = false
                             onSaveMultipleToDownloads(displayedItems.filter { it.id in selectedItemIds })
                         }
+                        PlayfulMenuItem("Share selected to chat", PlayfulIcons.Share) {
+                            batchMenuExpanded = false
+                            onShareMultipleItems(displayedItems.filter { it.id in selectedItemIds })
+                        }
                         PlayfulMenuItem("Spew the first one", PlayfulIcons.Speaker, highlight = true) {
                             batchMenuExpanded = false
                             displayedItems.firstOrNull { it.id in selectedItemIds }?.let { onSpewDirectly(it) }
@@ -510,6 +516,14 @@ fun CloudLibraryScreen(
                         contentDescription = "Spew ${item.title} into voice chat"
                     )
 
+                    IconBlobButton(
+                        icon = PlayfulIcons.Share,
+                        contentDescription = "Share ${item.title} to chat (WhatsApp, Signal)",
+                        onClick = { onShareItem(item) },
+                        size = 40.dp,
+                        iconSize = 18.dp
+                    )
+
                     var itemMenuExpanded by remember { mutableStateOf(false) }
                     Box {
                         IconBlobButton(
@@ -522,6 +536,10 @@ fun CloudLibraryScreen(
                             onDismissRequest = { itemMenuExpanded = false },
                             modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                         ) {
+                            PlayfulMenuItem("Share sound file", PlayfulIcons.Share) {
+                                itemMenuExpanded = false
+                                onShareItem(item)
+                            }
                             PlayfulMenuItem("Spew into chat", PlayfulIcons.Speaker, highlight = true) {
                                 itemMenuExpanded = false
                                 onSpewDirectly(item)
