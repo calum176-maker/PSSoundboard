@@ -1,17 +1,10 @@
 package com.jms.pssoundboard.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,8 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,28 +25,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jms.pssoundboard.data.LibraryItem
 import com.jms.pssoundboard.data.model.SpewEntry
 import com.jms.pssoundboard.data.model.VaultSortOrder
 import com.jms.pssoundboard.ui.components.BlobChip
-import com.jms.pssoundboard.ui.components.CapsuleRow
 import com.jms.pssoundboard.ui.components.IconBlobButton
+import com.jms.pssoundboard.ui.components.MenuEntry
+import com.jms.pssoundboard.ui.components.MenuTone
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.PlayfulHeader
-import com.jms.pssoundboard.ui.components.SpewButton
+import com.jms.pssoundboard.ui.components.SelectionBar
+import com.jms.pssoundboard.ui.components.SoundRow
 import com.jms.pssoundboard.ui.components.StatusCard
 import com.jms.pssoundboard.ui.components.blobColourFor
 import com.jms.pssoundboard.ui.components.blobShapeFor
 import com.jms.pssoundboard.ui.theme.PadShape
-import com.jms.pssoundboard.ui.theme.PinStar
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
@@ -170,80 +159,36 @@ fun SpewVaultScreen(
             }
         )
 
-        // Batch bar for selected entries
-        AnimatedVisibility(
-            visible = selectedEntryIds.isNotEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut()
+        SelectionBar(
+            count = selectedEntryIds.size,
+            menuDescription = "More options for selected clips",
+            menuEntries = listOf(
+                MenuEntry("Copy all links", PlayfulIcons.Copy) { copySelected() },
+                MenuEntry("Save selected to Downloads", PlayfulIcons.Download) {
+                    onSaveMultipleToDownloads(selectedList())
+                },
+                MenuEntry("Share selected to chat", PlayfulIcons.Share) {
+                    onShareMultipleEntries(selectedList())
+                },
+                MenuEntry("Delete selected", PlayfulIcons.Trash, MenuTone.Danger) {
+                    onDeleteEntries(selectedEntryIds)
+                    selectedEntryIds = emptySet()
+                },
+                MenuEntry("Deselect all", PlayfulIcons.Close) { selectedEntryIds = emptySet() },
+            ),
+            onClear = { selectedEntryIds = emptySet() }
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 22.dp, bottomEnd = 24.dp, bottomStart = 20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .padding(start = 16.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "${selectedEntryIds.size} selected",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                IconBlobButton(
-                    icon = PlayfulIcons.Copy,
-                    contentDescription = "Copy links for selected clips",
-                    onClick = { copySelected() }
-                )
-                IconBlobButton(
-                    icon = PlayfulIcons.Download,
-                    contentDescription = "Save selected clips to Downloads",
-                    onClick = { onSaveMultipleToDownloads(selectedList()) },
-                    colour = MaterialTheme.colorScheme.primary
-                )
-
-                var batchMenuExpanded by remember { mutableStateOf(false) }
-                Box {
-                    IconBlobButton(
-                        icon = PlayfulIcons.More,
-                        contentDescription = "More options for selected clips",
-                        onClick = { batchMenuExpanded = true }
-                    )
-                    DropdownMenu(
-                        expanded = batchMenuExpanded,
-                        onDismissRequest = { batchMenuExpanded = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    ) {
-                        VaultMenuItem("Copy all links", PlayfulIcons.Copy) {
-                            batchMenuExpanded = false
-                            copySelected()
-                        }
-                        VaultMenuItem("Save selected to Downloads", PlayfulIcons.Download) {
-                            batchMenuExpanded = false
-                            onSaveMultipleToDownloads(selectedList())
-                        }
-                        VaultMenuItem("Share selected to chat", PlayfulIcons.Share) {
-                            batchMenuExpanded = false
-                            onShareMultipleEntries(selectedList())
-                        }
-                        VaultMenuItem("Delete selected", PlayfulIcons.Trash, colour = MaterialTheme.colorScheme.error) {
-                            batchMenuExpanded = false
-                            onDeleteEntries(selectedEntryIds)
-                            selectedEntryIds = emptySet()
-                        }
-                        VaultMenuItem("Deselect all", PlayfulIcons.Close, colour = MaterialTheme.colorScheme.onSurfaceVariant) {
-                            batchMenuExpanded = false
-                            selectedEntryIds = emptySet()
-                        }
-                    }
-                }
-                IconBlobButton(
-                    icon = PlayfulIcons.Close,
-                    contentDescription = "Clear selection",
-                    onClick = { selectedEntryIds = emptySet() }
-                )
-            }
+            IconBlobButton(
+                icon = PlayfulIcons.Copy,
+                contentDescription = "Copy links for selected clips",
+                onClick = { copySelected() }
+            )
+            IconBlobButton(
+                icon = PlayfulIcons.Download,
+                contentDescription = "Save selected clips to Downloads",
+                onClick = { onSaveMultipleToDownloads(selectedList()) },
+                colour = MaterialTheme.colorScheme.primary
+            )
         }
 
         if (spewEntries.isEmpty()) {
@@ -340,7 +285,29 @@ private fun VaultRow(
         )
     }
 
-    CapsuleRow(selected = isSelected) {
+    SoundRow(
+        key = entry.id,
+        title = entry.title,
+        subtitle = "${entry.category} · ${entry.formattedLastSpewed().replaceFirstChar { it.lowercase() }}",
+        selected = isSelected,
+        pinned = entry.isPinned,
+        onSpew = { onSpewEntry(entry) },
+        spewDescription = "Spew ${entry.title} again",
+        onShare = { onShareEntry(entry) },
+        shareDescription = "Share ${entry.title} to WhatsApp, Signal or other apps",
+        menuEntries = listOf(
+            MenuEntry("Share sound file", PlayfulIcons.Share) { onShareEntry(entry) },
+            MenuEntry("Copy sound link", PlayfulIcons.Copy) {
+                onCopyToClipboard(entry.title, entry.sourceUrl ?: entry.localFilePath ?: entry.title)
+            },
+            MenuEntry("Save to device", PlayfulIcons.Download) { onSaveToDownloads(entry) },
+            MenuEntry("Spew into chat", PlayfulIcons.Play, MenuTone.Spew) { onSpewEntry(entry) },
+            MenuEntry("Equip to a pad", PlayfulIcons.Plus) { equip() },
+            MenuEntry(if (entry.isPinned) "Unpin" else "Pin", PlayfulIcons.Star) { onTogglePin(entry.id) },
+            MenuEntry(if (isSelected) "Deselect" else "Select", PlayfulIcons.Check) { onToggleSelected() },
+            MenuEntry("Delete from vault", PlayfulIcons.Trash, MenuTone.Danger) { onDeleteEntries(setOf(entry.id)) },
+        )
+    ) {
         // Count blob doubles as the selection toggle; shows a check when selected.
         val timesSpewed = "Spewed ${plural(entry.spewCount, "time", "times")}"
         Box(
@@ -373,138 +340,7 @@ private fun VaultRow(
                 )
             }
         }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            var isScrollingTitle by remember(entry.id) { mutableStateOf(false) }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                if (entry.isPinned) {
-                    Icon(
-                        imageVector = PlayfulIcons.Star,
-                        contentDescription = "Pinned",
-                        tint = PinStar,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-                Text(
-                    text = entry.title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleSmall,
-                    // Two lines before the ellipsis: the Spew, share and menu buttons leave little width
-                    maxLines = if (isScrollingTitle) 1 else 2,
-                    overflow = if (isScrollingTitle) TextOverflow.Clip else TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            isScrollingTitle = !isScrollingTitle
-                        }
-                        .then(
-                            if (isScrollingTitle) {
-                                Modifier.basicMarquee(
-                                    iterations = Int.MAX_VALUE,
-                                    initialDelayMillis = 150,
-                                    repeatDelayMillis = 1200,
-                                    velocity = 45.dp
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                )
-            }
-            Text(
-                text = "${entry.category} · ${entry.formattedLastSpewed().replaceFirstChar { it.lowercase() }}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        SpewButton(
-            onClick = { onSpewEntry(entry) },
-            contentDescription = "Spew ${entry.title} again"
-        )
-
-        IconBlobButton(
-            icon = PlayfulIcons.Share,
-            contentDescription = "Share ${entry.title} to WhatsApp, Signal or other apps",
-            onClick = { onShareEntry(entry) },
-            size = 40.dp,
-            iconSize = 18.dp
-        )
-
-        var itemMenuExpanded by remember { mutableStateOf(false) }
-        Box {
-            IconBlobButton(
-                icon = PlayfulIcons.More,
-                contentDescription = "More options for ${entry.title}",
-                onClick = { itemMenuExpanded = true }
-            )
-            DropdownMenu(
-                expanded = itemMenuExpanded,
-                onDismissRequest = { itemMenuExpanded = false },
-                modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            ) {
-                VaultMenuItem("Share sound file", PlayfulIcons.Share) {
-                    itemMenuExpanded = false
-                    onShareEntry(entry)
-                }
-                VaultMenuItem("Copy sound link", PlayfulIcons.Copy) {
-                    itemMenuExpanded = false
-                    val link = entry.sourceUrl ?: entry.localFilePath ?: entry.title
-                    onCopyToClipboard(entry.title, link)
-                }
-                VaultMenuItem("Save to device", PlayfulIcons.Download) {
-                    itemMenuExpanded = false
-                    onSaveToDownloads(entry)
-                }
-                VaultMenuItem("Spew into chat", PlayfulIcons.Play, colour = MaterialTheme.colorScheme.primary) {
-                    itemMenuExpanded = false
-                    onSpewEntry(entry)
-                }
-                VaultMenuItem("Equip to a pad", PlayfulIcons.Plus) {
-                    itemMenuExpanded = false
-                    equip()
-                }
-                VaultMenuItem(if (entry.isPinned) "Unpin" else "Pin", PlayfulIcons.Star) {
-                    itemMenuExpanded = false
-                    onTogglePin(entry.id)
-                }
-                VaultMenuItem(if (isSelected) "Deselect" else "Select", PlayfulIcons.Check) {
-                    itemMenuExpanded = false
-                    onToggleSelected()
-                }
-                VaultMenuItem("Delete from vault", PlayfulIcons.Trash, colour = MaterialTheme.colorScheme.error) {
-                    itemMenuExpanded = false
-                    onDeleteEntries(setOf(entry.id))
-                }
-            }
-        }
     }
-}
-
-@Composable
-private fun VaultMenuItem(
-    text: String,
-    icon: ImageVector,
-    colour: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = { Text(text, color = colour, style = MaterialTheme.typography.labelLarge) },
-        leadingIcon = { Icon(icon, contentDescription = null, tint = colour, modifier = Modifier.size(18.dp)) },
-        onClick = onClick
-    )
 }
 
 /** "1 spew", "3 spews". */
