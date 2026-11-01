@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon (Android 13+) version of the Spew mouth: one colour, face cut out of the blob. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.74"
+        android:scaleY="0.74">
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M54,21C74,20 88,33 87,53C86,73 72,88 52,87C33,86 20,73 21,54C22,34 35,22 54,21Z
+                M37.5,41a3.5,3.5 0,1 0,7 0a3.5,3.5 0,1 0,-7 0Z
+                M51.5,40a3.5,3.5 0,1 0,7 0a3.5,3.5 0,1 0,-7 0Z
+                M36,50Q48,44 58,50Q56,67 47,67Q37,67 36,50Z" />
+        <path
+            android:pathData="M66,48L78,42M67,56L81,56M66,64L78,70"
+            android:strokeWidth="5"
+            android:strokeColor="#000000"
+            android:strokeLineCap="round" />
+    </group>
+</vector>
