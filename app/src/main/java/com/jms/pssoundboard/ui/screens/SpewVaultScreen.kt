@@ -148,8 +148,7 @@ fun SpewVaultScreen(
                 BlobChip(
                     text = order.plainLabel(),
                     selected = order == sortOrder,
-                    onClick = { sortOrder = order },
-                    modifier = Modifier.height(44.dp)
+                    onClick = { sortOrder = order }
                 )
             }
         }

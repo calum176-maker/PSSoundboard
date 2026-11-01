@@ -31,7 +31,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -64,6 +63,7 @@ import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.WavUtils
 import com.jms.pssoundboard.data.model.DeckState
 import com.jms.pssoundboard.data.model.PadRef
+import com.jms.pssoundboard.ui.components.accentFieldColours
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -440,14 +440,7 @@ fun ClipCreatorDialog(
                         onValueChange = { clipTitle = it },
                         label = { Text("Clip Title") },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = MaterialTheme.spew.accent,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedLabelColor = MaterialTheme.spew.accent,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
+                        colors = accentFieldColours(),
                         modifier = Modifier.fillMaxWidth()
                     )
 

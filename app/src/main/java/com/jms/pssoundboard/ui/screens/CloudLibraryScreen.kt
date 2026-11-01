@@ -42,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -268,22 +267,16 @@ fun CloudLibraryScreen(
             itemsIndexed(OnlineSoundService.PRESET_QUICK_SEARCHES) { index, (label, query) ->
                 val isSelected = selectedPreset == label ||
                     (searchQuery.isNotBlank() && searchQuery.equals(query, ignoreCase = true))
-                Box(
-                    modifier = Modifier
-                        .border(2.5.dp, if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent, ChipBlob)
-                        .padding(3.dp)
-                ) {
-                    BlobChip(
-                        text = label,
-                        selected = isSelected,
-                        colour = PadPalette[index % PadPalette.size].toComposeColor(),
-                        onClick = {
-                            selectedPreset = label
-                            searchQuery = query
-                            onSearchOnline(query)
-                        }
-                    )
-                }
+                BlobChip(
+                    text = label,
+                    selected = isSelected,
+                    colour = PadPalette[index % PadPalette.size].toComposeColor(),
+                    onClick = {
+                        selectedPreset = label
+                        searchQuery = query
+                        onSearchOnline(query)
+                    }
+                )
             }
         }
 

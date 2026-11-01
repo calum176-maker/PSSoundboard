@@ -35,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -54,6 +53,7 @@ import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.data.SynthTestClipsGenerator
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.components.accentFieldColours
 import com.jms.pssoundboard.ui.theme.PadPalette
 import com.jms.pssoundboard.ui.theme.spew
 
@@ -126,15 +126,7 @@ fun PadEditorDialog(
                     onValueChange = { title = it },
                     label = { Text("Pad Title") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedBorderColor = MaterialTheme.spew.accent,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme.spew.accent,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        cursorColor = MaterialTheme.spew.accent
-                    ),
+                    colors = accentFieldColours(),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -154,12 +146,7 @@ fun PadEditorDialog(
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeMenuExpanded) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = MaterialTheme.spew.accent,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        ),
+                        colors = accentFieldColours(),
                         modifier = Modifier
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                             .fillMaxWidth()
@@ -268,12 +255,7 @@ fun PadEditorDialog(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = soundMenuExpanded) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                focusedBorderColor = MaterialTheme.spew.accent,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            ),
+                            colors = accentFieldColours(),
                             modifier = Modifier
                                 .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                                 .fillMaxWidth()

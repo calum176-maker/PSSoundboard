@@ -41,7 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -75,9 +74,11 @@ import com.jms.pssoundboard.data.model.PADS_PER_BOARD
 import com.jms.pssoundboard.data.model.Pad
 import com.jms.pssoundboard.data.model.PadRef
 import com.jms.pssoundboard.data.model.PlaybackMode
+import com.jms.pssoundboard.ui.components.BlobChip
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.SoftButton
 import com.jms.pssoundboard.ui.components.SpewButton
+import com.jms.pssoundboard.ui.components.accentFieldColours
 import com.jms.pssoundboard.ui.theme.BricolageCondensed
 import com.jms.pssoundboard.ui.theme.ChipBlob
 import com.jms.pssoundboard.ui.theme.PadShape
@@ -167,37 +168,13 @@ fun LiveDeckScreen(
         ) {
             items(deckState.boards, key = { it.id }) { board ->
                 val isActive = board.id == activeBoard.id
-                Row(
-                    modifier = Modifier
-                        .height(44.dp)
-                        .clip(ChipBlob)
-                        .background(if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable(onClickLabel = if (isActive) "Edit deck" else "Open deck") {
-                            if (isActive) managingBoard = board else onSelectBoard(board.id)
-                        }
-                        .padding(start = 16.dp, end = if (isActive) 7.dp else 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = board.name,
-                        color = if (isActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1
-                    )
-                    if (isActive) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(PlayfulIcons.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(15.dp))
-                        }
-                    }
-                }
+                BlobChip(
+                    text = board.name,
+                    selected = isActive,
+                    trailingIcon = if (isActive) PlayfulIcons.Edit else null,
+                    onClickLabel = if (isActive) "Edit deck" else "Open deck",
+                    onClick = { if (isActive) managingBoard = board else onSelectBoard(board.id) }
+                )
             }
             item(key = "add_deck") {
                 Box(
@@ -369,14 +346,7 @@ fun LiveDeckScreen(
                         onValueChange = { editName = it },
                         label = { Text("Deck Name") },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedBorderColor = MaterialTheme.spew.accent,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedLabelColor = MaterialTheme.spew.accent,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
+                        colors = accentFieldColours(),
                         modifier = Modifier.fillMaxWidth()
                     )
 
