@@ -41,14 +41,17 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jms.pssoundboard.audio.ClipRecorder
 import com.jms.pssoundboard.audio.VoiceFxParams
 import com.jms.pssoundboard.audio.VoicePreset
 import com.jms.pssoundboard.ui.components.CapsuleShape
+import com.jms.pssoundboard.ui.components.PadLabel
 import com.jms.pssoundboard.ui.components.PlayfulField
 import com.jms.pssoundboard.ui.components.PlayfulHeader
 import com.jms.pssoundboard.ui.components.RecordPanel
@@ -64,6 +67,7 @@ import com.jms.pssoundboard.ui.theme.PitchColour
 import com.jms.pssoundboard.ui.theme.PlayfulIcons
 import com.jms.pssoundboard.ui.theme.PresetColours
 import com.jms.pssoundboard.ui.theme.RobotColour
+import com.jms.pssoundboard.ui.theme.condensed
 import com.jms.pssoundboard.ui.theme.gummy
 import com.jms.pssoundboard.ui.theme.inkOn
 import com.jms.pssoundboard.ui.theme.spew
@@ -452,12 +456,12 @@ private fun PresetBlob(
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
+        PadLabel(
             text = preset.label,
-            color = inkOn(colour),
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium.condensed(FontWeight.Bold)
+                .copy(color = inkOn(colour), textAlign = TextAlign.Center),
             maxLines = 2,
-            textAlign = TextAlign.Center
+            minFontSize = 9.sp
         )
     }
 }

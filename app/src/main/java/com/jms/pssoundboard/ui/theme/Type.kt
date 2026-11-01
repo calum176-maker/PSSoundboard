@@ -33,7 +33,7 @@ val BricolageCondensed = FontFamily(
 
 private val Base = Typography()
 
-private fun condensed(size: Int, lineHeight: Int) = TextStyle(
+private fun condensedStyle(size: Int, lineHeight: Int) = TextStyle(
     fontFamily = BricolageCondensed,
     fontWeight = FontWeight.ExtraBold,
     fontSize = size.sp,
@@ -55,16 +55,17 @@ private fun body(size: Int, lineHeight: Int, weight: FontWeight = FontWeight.Nor
 //   bodyMedium      body text                 bodySmall       hints and secondary text
 //   labelLarge      buttons                   labelMedium     chips, eyebrows, small actions
 //   labelSmall      tags, counters, nav labels
-// Only text that sizes itself to fit (pad labels, the deck title) sets a size directly.
+// Only text that sizes itself to fit (pad labels, the deck title) sets a size directly. Names on pads
+// and effect chips use a label style's condensed cut (TextStyle.condensed) through PadLabel.
 val Typography = Typography(
     displayLarge = Base.displayLarge.copy(fontFamily = BricolageCondensed, fontWeight = FontWeight.ExtraBold),
-    displayMedium = condensed(46, 48),
-    displaySmall = condensed(38, 36),
+    displayMedium = condensedStyle(46, 48),
+    displaySmall = condensedStyle(38, 36),
     headlineLarge = Base.headlineLarge.copy(fontFamily = BricolageCondensed, fontWeight = FontWeight.ExtraBold),
-    headlineMedium = condensed(28, 32),
-    headlineSmall = condensed(24, 28),
-    titleLarge = condensed(22, 26),
-    titleMedium = condensed(17, 20),
+    headlineMedium = condensedStyle(28, 32),
+    headlineSmall = condensedStyle(24, 28),
+    titleLarge = condensedStyle(22, 26),
+    titleMedium = condensedStyle(17, 20),
     titleSmall = body(16, 20, FontWeight.Bold),
     bodyLarge = body(16, 24),
     bodyMedium = body(14, 20),
@@ -73,3 +74,7 @@ val Typography = Typography(
     labelMedium = body(13, 16, FontWeight.Bold),
     labelSmall = body(11, 14, FontWeight.Bold),
 )
+
+/** The condensed cut of a scale style, for names on pads and effect chips so they match the Deck pads. */
+fun TextStyle.condensed(weight: FontWeight = FontWeight.ExtraBold): TextStyle =
+    copy(fontFamily = BricolageCondensed, fontWeight = weight)
