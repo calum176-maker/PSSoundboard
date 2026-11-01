@@ -1,5 +1,8 @@
 package com.jms.pssoundboard.service
 
+import kotlin.math.hypot
+import androidx.compose.foundation.shape.CircleShape
+import android.view.HapticFeedbackConstants
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -114,7 +117,8 @@ private val ClusterMargin = 10.dp
 
 /**
  * Foreground service that renders a collapsible, draggable floating Mini-Deck
- * over third-party applications (specifically the PlayStation App party chat screen).
+ * over other apps (the voice chat app: PlayStation App, Discord and so on).
+ * Close it from the × on the open deck, by dragging it onto the close target, or from its notification.
  */
 class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -172,6 +176,10 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
     private var initialTouchY = 0f
     private var isDragging = false
 
+    // Drag-to-close: a target at the bottom of the screen while the overlay is being dragged
+    private var dismissView: View? = null
+    private val overDismiss = mutableStateOf(false)
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -223,11 +231,11 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         )
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("PS Soundboard Mini-Deck Active")
-            .setContentText("Tap to return to app • Floating over PS App")
+            .setContentTitle("Spewboard mini-deck is open")
+            .setContentText("Tap to go back to Spewboard")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentIntent(pendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Close Overlay", stopPending)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Close mini-deck", stopPending)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -247,7 +255,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "PS Soundboard Floating Overlay",
+                "Spewboard mini-deck",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Shows when the floating mini soundboard is active over other apps"
@@ -290,6 +298,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                                 isExpanded.value = false
                                 updateOverlayWindow()
                             },
+                            onClose = { closeOverlay() },
                             onStopAll = { engine.stopAll() },
                             onPadPress = { ref, pad -> engine.pressPad(ref.key, pad) },
                             onPadRelease = { ref, pad -> engine.releasePad(ref.key, pad) }
@@ -349,10 +358,26 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                     if (isDragging || abs(dx) > 10 || abs(dy) > 10) {
                         isDragging = true
                         moveOverlayTo(initialX + dx, initialY + dy)
+                        showDismissTarget()
+                        val over = isOverDismissTarget(event.rawX, event.rawY)
+                        if (over && !overDismiss.value) {
+                            overlayView?.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                        }
+                        overDismiss.value = over
                     }
                 }
-                MotionEvent.ACTION_UP -> if (!isDragging) onTap?.invoke()
-                MotionEvent.ACTION_CANCEL -> isDragging = false
+                MotionEvent.ACTION_UP -> {
+                    val dropOnClose = isDragging && overDismiss.value
+                    hideDismissTarget()
+                    when {
+                        dropOnClose -> closeOverlay()
+                        !isDragging -> onTap?.invoke()
+                    }
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    isDragging = false
+                    hideDismissTarget()
+                }
             }
             true
         }
@@ -392,7 +417,54 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         updateOverlayWindow()
     }
 
+    private fun closeOverlay() {
+        hideDismissTarget()
+        stopSelf()
+    }
+
+    /** Shows the close target at the bottom of the screen (once per drag). */
+    private fun showDismissTarget() {
+        if (dismissView != null) return
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = (48 * resources.displayMetrics.density).toInt()
+        }
+        val view = ComposeView(this).apply {
+            setViewTreeLifecycleOwner(this@FloatingOverlayService)
+            setViewTreeSavedStateRegistryOwner(this@FloatingOverlayService)
+            setContent { PSSoundboardTheme { DismissTarget(active = overDismiss.value) } }
+        }
+        dismissView = view
+        runCatching { windowManager.addView(view, params) }
+    }
+
+    private fun hideDismissTarget() {
+        overDismiss.value = false
+        dismissView?.let { runCatching { windowManager.removeView(it) } }
+        dismissView = null
+    }
+
+    /** True when the finger is close enough to the close target to drop the overlay on it. */
+    private fun isOverDismissTarget(rawX: Float, rawY: Float): Boolean {
+        val target = dismissView ?: return false
+        if (target.width == 0) return false
+        val at = IntArray(2).also { target.getLocationOnScreen(it) }
+        val centreX = at[0] + target.width / 2f
+        val centreY = at[1] + target.width / 2f // the circle sits at the top of the target
+        val reach = 72 * resources.displayMetrics.density
+        return hypot(rawX - centreX, rawY - centreY) < reach
+    }
+
     override fun onDestroy() {
+        hideDismissTarget()
         _running.value = false
         overlayView?.let {
             runCatching { windowManager.removeView(it) }
@@ -439,6 +511,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
     @Composable
     private fun ExpandedMiniDeck(
         onCollapse: () -> Unit,
+        onClose: () -> Unit,
         onStopAll: () -> Unit,
         onPadPress: (PadRef, Pad) -> Unit,
         onPadRelease: (PadRef, Pad) -> Unit,
@@ -447,6 +520,7 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
         val playingPads by engine.playingPads.collectAsState()
         val miniPads = remember(deckState) { deckState.miniDeckPads() }
         val currentOnCollapse by rememberUpdatedState(onCollapse)
+        val currentOnClose by rememberUpdatedState(onClose)
 
         Box(
             modifier = Modifier
@@ -471,6 +545,26 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 contentAlignment = Alignment.Center
             ) {
                 GripDots()
+            }
+
+            // Close: puts the mini-deck away without going back to the app
+            Box(
+                modifier = Modifier
+                    .offset(x = 172.dp, y = 2.dp)
+                    .size(width = 46.dp, height = 44.dp)
+                    .gummy(Ground, PadShape.PEBBLE.shape)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "Close the mini-deck"
+                        onClick(label = "Close the mini-deck") {
+                            currentOnClose()
+                            true
+                        }
+                    }
+                    .pointerInput(Unit) { detectTapGestures(onTap = { currentOnClose() }) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(PlayfulIcons.Close, contentDescription = null, tint = InkLight, modifier = Modifier.size(18.dp))
             }
 
             PadSpots.forEachIndexed { index, spot ->
@@ -631,6 +725,36 @@ class FloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwne
                 fontFamily = BricolageCondensed,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 17.sp
+            )
+        }
+    }
+
+    /** The drop target shown while dragging: drop the mini-deck on it to close it. */
+    @Composable
+    private fun DismissTarget(active: Boolean) {
+        val grow by animateFloatAsState(if (active) 1.2f else 1f, spring(), label = "dismissGrow")
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .scale(grow)
+                    .gummy(if (active) StopRed else Surface2, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(PlayfulIcons.Close, contentDescription = null, tint = if (active) InkOnBlob else InkLight, modifier = Modifier.size(26.dp))
+            }
+            Text(
+                text = if (active) "Let go to close" else "Drop here to close",
+                color = InkLight,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Ground.copy(alpha = 0.85f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
     }

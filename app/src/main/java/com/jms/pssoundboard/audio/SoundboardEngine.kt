@@ -23,11 +23,11 @@ import java.io.File
  *
  * Routing contract:
  *  - SoundPool uses USAGE_MEDIA / CONTENT_TYPE_MUSIC so Android routes it out of the USB-C DAC,
- *    while the PS App keeps USAGE_VOICE_COMMUNICATION on the TRRS mic (Sleeve) input.
+ *    while the voice chat app keeps USAGE_VOICE_COMMUNICATION on the TRRS mic (Sleeve) input.
  *  - Every stream is HARD-PANNED LEFT (left = gain, right = 0f): Tip -> 10k -> Sleeve gets the
  *    full signal; Ring 1 (right) is unconnected and stays silent.
  *  - Audio focus is requested as AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK and released when idle, so the
- *    PS App never loses its permanent call focus. Playback proceeds even if focus is denied.
+ *    voice chat app never loses its permanent call focus. Playback proceeds even if focus is denied.
  *
  * All public methods must be called from the main thread.
  */
